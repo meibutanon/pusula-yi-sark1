@@ -8,6 +8,12 @@
 
 const TARGET_LANG = "tr";
 
+const OPENAI_SYSTEM_TRANSLATE =
+  "Sen Asya-Pasifik alanında uzmanlaşmış, uluslararası bir haber ajansında (Reuters, AA vb.) çalışan kıdemli bir Dış Haberler Editörüsün. Sana verilen İngilizce haber metnini profesyonel, tarafsız ve diplomatik bir gazetecilik diliyle Türkçeye çevireceksin. Birebir robotik çevirisi yapmaktan kaçın; diplomatik ve askeri terimleri doğru kullan (örneğin 'Foreign Minister' için 'Dışişleri Bakanı', 'Mainland' için 'Anakara' gibi). Sadece kusursuz çeviriyi yaz, hiçbir açıklama, tırnak işareti veya ek yorum ekleme.";
+
+const OPENAI_SYSTEM_SUMMARY =
+  "Sana verilen metni ve başlığı sadece çevirmekle kalma. Bir haber editörü gibi davranarak, verilen bilgileri harmanla ve okuyucuyu doyuracak nitelikte, profesyonel bir haber diliyle 3-4 cümlelik (yaklaşık 40-50 kelimelik) akıcı bir haber özeti paragrafı oluştur. Eğer orijinal metin çok kısaysa, başlığı da kullanarak mantıklı bir özet türet. Yanıtında sadece bu Türkçe özet paragrafını yaz, başka açıklama veya tırnak ekleme.";
+
 async function translateWithOpenAI(text: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
@@ -21,11 +27,7 @@ async function translateWithOpenAI(text: string): Promise<string> {
     body: JSON.stringify({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content:
-            "Sen Asya-Pasifik alanında uzmanlaşmış, uluslararası bir haber ajansında (Reuters, AA vb.) çalışan kıdemli bir Dış Haberler Editörüsün. Sana verilen İngilizce haber metnini profesyonel, tarafsız ve diplomatik bir gazetecilik diliyle Türkçeye çevireceksin. Birebir robotik çevirisi yapmaktan kaçın; diplomatik ve askeri terimleri doğru kullan (örneğin 'Foreign Minister' için 'Dışişleri Bakanı', 'Mainland' için 'Anakara' gibi). Sadece kusursuz çeviriyi yaz, hiçbir açıklama, tırnak işareti veya ek yorum ekleme.",
-        },
+        { role: "system", content: OPENAI_SYSTEM_TRANSLATE },
         { role: "user", content: text },
       ],
       max_tokens: 500,
@@ -40,6 +42,40 @@ async function translateWithOpenAI(text: string): Promise<string> {
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const content = data.choices?.[0]?.message?.content?.trim();
   if (!content) throw new Error("OpenAI returned empty translation");
+  return content;
+}
+
+/** Başlık + kısa açıklama ile 3-4 cümlelik Türkçe haber özeti üretir (sadece OpenAI ile). */
+async function translateSummaryWithOpenAI(title: string, description: string): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+
+  const userContent = `Başlık: ${title}\n\nMetin/Özet: ${description}`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: OPENAI_SYSTEM_SUMMARY },
+        { role: "user", content: userContent },
+      ],
+      max_tokens: 500,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI summary failed: ${res.status} ${err}`);
+  }
+
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error("OpenAI returned empty summary");
   return content;
 }
 
@@ -84,6 +120,23 @@ export async function translateToTurkish(text: string): Promise<string> {
   if (!text?.trim()) return "";
   const provider = getProvider();
   return provider === "openai" ? translateWithOpenAI(text) : translateWithGCP(text);
+}
+
+/**
+ * Haber özeti için: başlık + kısa metni alıp 3-4 cümlelik Türkçe özet paragrafı üretir.
+ * OpenAI kullanılıyorsa editör prompt'u ile genişletilir; GCP ile sadece çeviri yapılır.
+ */
+export async function translateToTurkishSummary(
+  title: string,
+  description: string
+): Promise<string> {
+  const d = (description || title || "").trim().slice(0, 2000);
+  if (!d) return "";
+  const provider = getProvider();
+  if (provider === "openai") {
+    return translateSummaryWithOpenAI(title || d, d);
+  }
+  return translateWithGCP(d);
 }
 
 /**

@@ -6,7 +6,7 @@
 
 import Parser from "rss-parser";
 import type { NewsItem, RawNewsItem } from "@/types/news";
-import { translateToTurkish } from "@/lib/translate";
+import { translateToTurkish, translateToTurkishSummary } from "@/lib/translate";
 import { getSupabase } from "@/lib/supabase";
 import {
   ASIA_PACIFIC_NEWS_CONFIG,
@@ -115,8 +115,9 @@ async function toNewsItem(
 ): Promise<NewsItem> {
   const timestamp = raw.isoDate ?? raw.pubDate ?? new Date().toISOString();
   const titleTr = await translateToTurkish(raw.title);
-  const summaryTr = await translateToTurkish(
-    raw.summary.slice(0, 2000) || raw.title
+  const summaryTr = await translateToTurkishSummary(
+    raw.title,
+    raw.summary?.slice(0, 2000) || raw.title
   );
   return {
     title: titleTr,
