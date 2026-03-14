@@ -109,8 +109,8 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
     country_code: "TH",
     country_name_en: "Thailand",
     sources: [
-      { kind: "rss", url: "https://www.nationthailand.com/rss/news", name: "The Nation", category: C.SonDakika },
-      { kind: "rss", url: "https://english.thaipbs.or.th/rss", name: "Thai PBS", category: C.Siyaset },
+      { kind: "rss", url: "https://www.bangkokpost.com/rss/data/topstories.xml", name: "Bangkok Post", category: C.SonDakika },
+      { kind: "rss", url: "https://www.khaosodenglish.com/feed/", name: "Khaosod English", category: C.Siyaset },
     ],
   },
   {
@@ -133,7 +133,8 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
     country_code: "MY",
     country_name_en: "Malaysia",
     sources: [
-      { kind: "rss", url: "https://www.thestar.com.my/rss/World", name: "The Star", category: C.SonDakika },
+      { kind: "rss", url: "https://www.malaymail.com/feed/rss/malaysia", name: "Malay Mail", category: C.SonDakika },
+      { kind: "rss", url: "https://www.freemalaysiatoday.com/category/nation/feed/", name: "Free Malaysia Today", category: C.Siyaset },
     ],
   },
   {
