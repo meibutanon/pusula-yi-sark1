@@ -13,12 +13,14 @@ import {
   Alert,
   Image,
   useWindowDimensions,
+  Modal,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNews } from "@/hooks/useNews";
 import { useTheme } from "@/contexts/ThemeContext";
-import { NewsCard, renderNewsCard } from "@/components/NewsCard";
+import { NewsCard } from "@/components/NewsCard";
 import { getAllCountryCodes } from "@/config/newsSources";
 import { getCountryDisplayLabel } from "@/utils/countryNames";
 import { getLocalTimeZone } from "@/utils/formatDate";
@@ -60,6 +62,7 @@ export default function HomeScreen() {
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [, setTick] = useState(0);
+  const [selectedNewsItem, setSelectedNewsItem] = useState<NewsRow | null>(null);
 
   const logoMaxWidth = Math.min(380, screenWidth - 40);
   const logoHeight = logoMaxWidth / LOGO_ASPECT;
@@ -362,10 +365,86 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
+
+        {/* Haber detay modal: başlık + özet, kaynağa git butonu, kapat */}
+        <Modal
+          visible={selectedNewsItem !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSelectedNewsItem(null)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            className="flex-1 justify-center items-center bg-black/60 px-4"
+            onPress={() => setSelectedNewsItem(null)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => {}}
+              className={`w-full max-w-md rounded-2xl overflow-hidden shadow-xl ${
+                isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white border border-slate-200"
+              }`}
+              style={{ maxHeight: "85%" }}
+            >
+              <View className="p-5 pb-4">
+                <View className="flex-row justify-between items-start gap-3">
+                  <Text
+                    className={`flex-1 text-lg font-bold leading-snug ${
+                      isDarkMode ? "text-white" : "text-slate-900"
+                    }`}
+                  >
+                    {selectedNewsItem?.title}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setSelectedNewsItem(null)}
+                    className="w-9 h-9 rounded-full items-center justify-center bg-slate-200/80 dark:bg-slate-700/80"
+                    accessibilityLabel="Kapat"
+                    accessibilityRole="button"
+                  >
+                    <Ionicons name="close" size={22} color={isDarkMode ? "#e2e8f0" : "#475569"} />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  className="mt-4 max-h-52"
+                  showsVerticalScrollIndicator={true}
+                >
+                  <Text
+                    className={`text-base leading-relaxed ${
+                      isDarkMode ? "text-gray-300" : "text-slate-600"
+                    }`}
+                  >
+                    {selectedNewsItem?.summary_tr}
+                  </Text>
+                </ScrollView>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (selectedNewsItem?.source_url) {
+                      if (Platform.OS === "web" && typeof window !== "undefined" && window.open) {
+                        window.open(selectedNewsItem.source_url, "_blank", "noopener,noreferrer");
+                      } else {
+                        Linking.openURL(selectedNewsItem.source_url);
+                      }
+                    }
+                  }}
+                  className="mt-5 py-3.5 rounded-xl bg-slate-900 dark:bg-slate-700 items-center"
+                  accessibilityLabel="Haberin kaynağına git"
+                  accessibilityRole="button"
+                >
+                  <Text className="text-white font-semibold text-base">
+                    Haberin Kaynağına Git
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+
         <FlatList
           data={filteredNews}
           keyExtractor={(item) => item.id}
-          renderItem={renderNewsCard}
+          renderItem={({ item }) => (
+            <NewsCard item={item} onPress={setSelectedNewsItem} />
+          )}
           ListHeaderComponent={ListHeader}
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}

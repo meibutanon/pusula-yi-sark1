@@ -14,9 +14,11 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 interface NewsCardProps {
   item: NewsRow;
+  /** Verilirse kart tıklanınca link açılmaz; bu callback çağrılır (örn. modal açmak için). */
+  onPress?: (item: NewsRow) => void;
 }
 
-export function NewsCard({ item }: NewsCardProps) {
+export function NewsCard({ item, onPress }: NewsCardProps) {
   const { isDarkMode } = useTheme();
   const cardBg = isDarkMode ? "bg-gray-800" : "bg-white";
   const borderCls = isDarkMode ? "border-gray-700" : "border-slate-100";
@@ -33,9 +35,14 @@ export function NewsCard({ item }: NewsCardProps) {
     }
   };
 
+  const handlePress = () => {
+    if (onPress) onPress(item);
+    else openLinkSafe();
+  };
+
   return (
     <TouchableOpacity
-      onPress={openLinkSafe}
+      onPress={handlePress}
       activeOpacity={0.85}
       accessibilityRole="link"
       accessibilityLabel={`Haber: ${item.title}`}
