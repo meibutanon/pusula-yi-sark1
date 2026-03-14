@@ -1,8 +1,8 @@
 name: Pusula-yi Sark Haber Botu
 on:
-  # Public repo = sınırsız dakika. Günde 4 run (6 saatte bir). Push tetiklemesi kapalı (fazla dakika yemesin).
+  # Public repo = sınırsız dakika. Günde 12 run (2 saatte bir). Push tetiklemesi kapalı (fazla dakika yemesin).
   schedule:
-    - cron: '0 */6 * * *'   # 00:00, 06:00, 12:00, 18:00 UTC (03:00, 09:00, 15:00, 21:00 TR)
+    - cron: '0 */2 * * *'   # Her 2 saatte bir (00:00, 02:00, 04:00, ... UTC → TR +3)
   workflow_dispatch:        # Manuel: Actions → Run workflow
   # push kapalı; her push'ta run istemiyorsanız böyle kalsın
 

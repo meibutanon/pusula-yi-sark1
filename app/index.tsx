@@ -12,6 +12,7 @@ import {
   Platform,
   Alert,
   Image,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,14 +48,21 @@ function filterNews(
   return result;
 }
 
+const LOGO_ASPECT = 380 / 150;
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const isNarrow = screenWidth < 640;
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(ALL_COUNTRIES);
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [, setTick] = useState(0);
+
+  const logoMaxWidth = Math.min(380, screenWidth - 40);
+  const logoHeight = logoMaxWidth / LOGO_ASPECT;
 
   useEffect(() => {
     // Web üzerinde konum sormaya çalışıp hata almamak için direkt etiketi koyuyoruz
@@ -243,16 +251,17 @@ export default function HomeScreen() {
     >
       <View className="flex-1">
         <View className={`px-5 py-6 ${headerBg}`}>
-          <View className="flex-row items-center flex-wrap" style={{ gap: 0 }}>
+          <View
+            className={isNarrow ? "flex-col items-stretch gap-4" : "flex-row items-center flex-wrap"}
+            style={{ gap: isNarrow ? 16 : 0 }}
+          >
+            {/* Logo: esnek, max-width + oran korunuyor, ezilmiyor */}
             <View
-              className="flex-row items-center"
-              style={{ width: "60%", backgroundColor: "transparent" }}
-            >
-              <View
               className="logo-wrap"
               style={{
-                width: 380, // 320'yi 380 yaptık
-                height: 150, // 128'i 150 yaptık
+                maxWidth: logoMaxWidth,
+                width: isNarrow ? "100%" : logoMaxWidth,
+                height: logoHeight,
                 backgroundColor: "transparent",
                 overflow: "hidden",
               }}
@@ -261,69 +270,82 @@ export default function HomeScreen() {
                 source={require("../assets/logo-seffaf.png.png")}
                 resizeMode="contain"
                 style={{
-                  width: 380, // Burayı da 380 yaptık
-                  height: 150, // Burayı da 150 yaptık
+                  width: "100%",
+                  height: "100%",
                   backgroundColor: "transparent",
                 }}
                 accessibilityLabel="Pusula-yı Şark logosu"
               />
             </View>
+
+            {/* Mobilde divider yok; masaüstünde logo ile Canlı Akış yan yana */}
+            {!isNarrow && (
               <View className="border-l border-slate-700 h-14 ml-4" />
-              <View className="flex-col ml-4">
-                <View className="flex-row items-center gap-2">
-                  <View className="w-2 h-2 rounded-full bg-red-500" />
-                  <Text className="text-white font-sans text-sm font-medium tracking-wide">
-                    Canlı Akış
-                  </Text>
-                </View>
-                <Text className="text-white font-sans text-sm font-medium tracking-wide mt-0.5">
-                  {new Date().toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    timeZone: userTimeZone,
-                  })}
-                </Text>
-                <Text className="text-slate-400 text-xs font-normal mt-0.5">
-                  Son Kontrol: {lastCheckLabel}
-                </Text>
-                <Text className="text-slate-500 text-[11px] font-normal mt-0.5">
-                  {locationLabel ?? "Dünya Geneli"}
+            )}
+
+            {/* Canlı Akış + tarih + Son Kontrol + konum – mobilde alt alta, her zaman görünür */}
+            <View className={isNarrow ? "flex-col gap-1" : "flex-col ml-4"}>
+              <View className="flex-row items-center gap-2">
+                <View className="w-2 h-2 rounded-full bg-red-500" />
+                <Text className="text-white font-sans text-sm font-medium tracking-wide">
+                  Canlı Akış
                 </Text>
               </View>
+              <Text className="text-white font-sans text-sm font-medium tracking-wide mt-0.5">
+                {new Date().toLocaleDateString("tr-TR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  timeZone: userTimeZone,
+                })}
+              </Text>
+              <Text className="text-slate-400 text-xs font-normal mt-0.5">
+                Son yenilenme: {lastCheckLabel}
+              </Text>
+              <Text className="text-slate-500 text-[11px] font-normal mt-0.5">
+                {locationLabel ?? "Dünya Geneli"}
+              </Text>
             </View>
+
+            {/* Sağ blok: Asya-Pasifik + ikonlar */}
             <View
-              className="flex-row items-center justify-end flex-1"
-              style={{ minWidth: "40%" }}
+              className={
+                isNarrow
+                  ? "flex-row items-center justify-between flex-1 pt-2 border-t border-slate-700/50"
+                  : "flex-row items-center justify-end flex-1"
+              }
+              style={!isNarrow ? { minWidth: "40%" } : undefined}
             >
               <Text className="text-slate-400 text-sm font-medium tracking-wide mr-2">
                 Asya-Pasifik Haber Ağı
               </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  Alert.alert(
-                    "Bildirimler",
-                    "Pusula-yı Şark bildirimlerini başarıyla açtınız!"
-                  )
-                }
-                className="w-9 h-9 rounded-lg items-center justify-center"
-                accessibilityLabel="Abonelik"
-                accessibilityRole="button"
-              >
-                <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={toggleTheme}
-                className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-600/50 items-center justify-center"
-                accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
-                accessibilityRole="button"
-              >
-                <Ionicons
-                  name={isDarkMode ? "sunny" : "moon"}
-                  size={18}
-                  color="#e2e8f0"
-                />
-              </TouchableOpacity>
+              <View className="flex-row items-center gap-1">
+                <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert(
+                      "Bildirimler",
+                      "Pusula-yı Şark bildirimlerini başarıyla açtınız!"
+                    )
+                  }
+                  className="w-9 h-9 rounded-lg items-center justify-center"
+                  accessibilityLabel="Abonelik"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={toggleTheme}
+                  className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-600/50 items-center justify-center"
+                  accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name={isDarkMode ? "sunny" : "moon"}
+                    size={18}
+                    color="#e2e8f0"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
