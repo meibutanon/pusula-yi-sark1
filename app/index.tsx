@@ -163,39 +163,17 @@ export default function HomeScreen() {
   const stickyBarIconColor = isDarkMode ? "#e2e8f0" : "#475569";
   const stickyBarSearchIconColor = isDarkMode ? "#94a3b8" : "#64748b";
 
-  /** Sticky bar: Sadece alt kısım (Canlı Akış saati, arama, ülke filtreleri). Arka plan temayla aynı. */
+  /** Sticky bar: Sadece Canlı Akış satırı + arama + ülke filtreleri. Zil/tema ikonları YOK (sadece üstte logo yanında). */
   const renderStickyBar = () => (
     <View className={`px-5 py-3 ${stickyBarBg}`}>
-      <View className="flex-row items-center justify-between gap-2 flex-wrap mb-3">
-        <View className="flex-row items-center gap-2 flex-wrap min-w-0 flex-1">
-          <View className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-          <Text className={`font-sans text-sm font-medium tracking-wide ${stickyBarText}`}>
-            Canlı Akış
-          </Text>
-          <Text className={`text-xs font-normal shrink-0 ${stickyBarMuted}`}>
-            Son: {lastCheckLabel}
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-1 shrink-0">
-          <TouchableOpacity
-            onPress={() =>
-              Alert.alert("Bildirimler", "Pusula-yı Şark bildirimlerini başarıyla açtınız!")
-            }
-            className="w-9 h-9 rounded-lg items-center justify-center"
-            accessibilityLabel="Abonelik"
-            accessibilityRole="button"
-          >
-            <Ionicons name="notifications-outline" size={20} color={stickyBarSearchIconColor} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={toggleTheme}
-            className={`w-9 h-9 rounded-lg items-center justify-center ${stickyBarIconBtn}`}
-            accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
-            accessibilityRole="button"
-          >
-            <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color={stickyBarIconColor} />
-          </TouchableOpacity>
-        </View>
+      <View className="flex-row items-center gap-2 flex-wrap mb-3">
+        <View className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+        <Text className={`font-sans text-sm font-medium tracking-wide ${stickyBarText}`}>
+          Canlı Akış
+        </Text>
+        <Text className={`text-xs font-normal shrink-0 ${stickyBarMuted}`}>
+          Son: {lastCheckLabel}
+        </Text>
       </View>
       <View className="flex-row items-center gap-2 mb-3">
         <View className={`flex-1 flex-row items-center rounded-lg pl-3 pr-2 py-2.5 ${stickyBarInputBg}`}>
@@ -288,78 +266,74 @@ export default function HomeScreen() {
     </View>
   );
 
-  const listHeaderComponent = (
-    <>
-      {/* 1) Logo bölümü: kaydırınca yukarı gider. Masaüstü: Logo sol | Asya-Pasifik + ikonlar sağ. Mobil: logo esnek üstte. */}
+  const logoSection = (
+    <View
+      key="header-logo"
+      className={headerBg}
+      onLayout={(e) => setLogoSectionHeight(e.nativeEvent.layout.height)}
+      style={{ paddingHorizontal: 20, paddingVertical: 24 }}
+    >
       <View
-        className={headerBg}
-        onLayout={(e) => setLogoSectionHeight(e.nativeEvent.layout.height)}
-        style={{ paddingHorizontal: 20, paddingVertical: 24 }}
+        className={
+          isNarrow
+            ? "flex-col items-stretch gap-4"
+            : "flex-row items-center justify-between w-full"
+        }
+        style={{ gap: isNarrow ? 16 : 0 }}
       >
         <View
-          className={
-            isNarrow
-              ? "flex-col items-stretch gap-4"
-              : "flex-row items-center justify-between w-full"
-          }
-          style={{ gap: isNarrow ? 16 : 0 }}
+          className="logo-wrap"
+          style={{
+            maxWidth: logoMaxWidth,
+            width: isNarrow ? "100%" : logoMaxWidth,
+            height: logoHeight,
+            backgroundColor: "transparent",
+            overflow: "hidden",
+          }}
         >
-          <View
-            className="logo-wrap"
-            style={{
-              maxWidth: logoMaxWidth,
-              width: isNarrow ? "100%" : logoMaxWidth,
-              height: logoHeight,
-              backgroundColor: "transparent",
-              overflow: "hidden",
-            }}
-          >
-            <Image
-              source={require("../assets/logo-seffaf.png.png")}
-              resizeMode="contain"
-              style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
-              accessibilityLabel="Pusula-yı Şark logosu"
-            />
+          <Image
+            source={require("../assets/logo-seffaf.png.png")}
+            resizeMode="contain"
+            style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
+            accessibilityLabel="Pusula-yı Şark logosu"
+          />
+        </View>
+        <View className={isNarrow ? "flex-row items-center justify-between flex-wrap gap-2" : "flex-row items-center gap-2 shrink-0"}>
+          <Text className="text-slate-400 text-sm font-medium tracking-wide">
+            Asya-Pasifik Haber Ağı
+          </Text>
+          <View className="flex-row items-center gap-1">
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert("Bildirimler", "Pusula-yı Şark bildirimlerini başarıyla açtınız!")
+              }
+              className="w-9 h-9 rounded-lg items-center justify-center"
+              accessibilityLabel="Abonelik"
+              accessibilityRole="button"
+            >
+              <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={toggleTheme}
+              className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-600/50 items-center justify-center"
+              accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
+              accessibilityRole="button"
+            >
+              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color="#e2e8f0" />
+            </TouchableOpacity>
           </View>
-          {!isNarrow && (
-            <View className="flex-row items-center gap-2 shrink-0">
-              <Text className="text-slate-400 text-sm font-medium tracking-wide">
-                Asya-Pasifik Haber Ağı
-              </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  Alert.alert("Bildirimler", "Pusula-yı Şark bildirimlerini başarıyla açtınız!")
-                }
-                className="w-9 h-9 rounded-lg items-center justify-center"
-                accessibilityLabel="Abonelik"
-                accessibilityRole="button"
-              >
-                <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={toggleTheme}
-                className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-600/50 items-center justify-center"
-                accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
-                accessibilityRole="button"
-              >
-                <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color="#e2e8f0" />
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
       </View>
-      {/* 2) Sadece bu alt kısım sticky: arama, filtreler, Canlı Akış saati. Logo sticky DEĞİL. */}
-      <View
-        style={
-          isWeb
-            ? ({ position: "sticky", top: 0, zIndex: 50 } as Record<string, number | string>)
-            : undefined
-        }
-      >
-        {renderStickyBar()}
-      </View>
-    </>
+    </View>
   );
+
+  const stickySection = (
+    <View key="header-sticky" style={{ backgroundColor: isDarkMode ? "#111827" : "#fafaf9" }}>
+      {renderStickyBar()}
+    </View>
+  );
+
+  const listHeaderComponent = [logoSection, stickySection];
 
   const screenBg = isDarkMode ? "bg-gray-900" : "bg-stone-50";
   const loadingColor = isDarkMode ? "#e2e8f0" : "#0f172a";
@@ -540,7 +514,8 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <NewsCard item={item} onPress={setSelectedNewsItem} />
           )}
-          ListHeaderComponent={listHeaderComponent}
+          ListHeaderComponent={() => listHeaderComponent}
+          stickyHeaderIndices={[1]}
           onScroll={handleScroll}
           scrollEventThrottle={32}
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
