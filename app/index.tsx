@@ -145,14 +145,34 @@ export default function HomeScreen() {
     timeZone: userTimeZone,
   });
 
-  /** Sticky bar: Canlı Akış, Son yenilenme, arama + ülke filtreleri + tema/bildirim. Web'de position:sticky, native'de scroll ile sabit klon gösterilir. */
+  const stickyBarBg = isDarkMode ? "bg-gray-900" : "bg-stone-50";
+  const stickyBarInputBg = isDarkMode
+    ? "bg-slate-800/60 border border-slate-700/50"
+    : "bg-white border border-slate-200";
+  const stickyBarText = isDarkMode ? "text-white" : "text-slate-900";
+  const stickyBarMuted = isDarkMode ? "text-slate-400" : "text-slate-500";
+  const stickyBarPillUnselected = isDarkMode
+    ? "bg-slate-800/80 border border-slate-600/50"
+    : "bg-slate-100 border border-slate-200";
+  const stickyBarPillTextUnselected = isDarkMode ? "text-slate-200" : "text-slate-700";
+  const stickyBarPillSelected = isDarkMode ? "bg-white" : "bg-slate-800";
+  const stickyBarPillTextSelected = isDarkMode ? "text-slate-900" : "text-white";
+  const stickyBarIconBtn = isDarkMode
+    ? "bg-slate-800/80 border border-slate-600/50"
+    : "bg-slate-200/80 border border-slate-200";
+  const stickyBarIconColor = isDarkMode ? "#e2e8f0" : "#475569";
+  const stickyBarSearchIconColor = isDarkMode ? "#94a3b8" : "#64748b";
+
+  /** Sticky bar: Sadece alt kısım (Canlı Akış saati, arama, ülke filtreleri). Arka plan temayla aynı. */
   const renderStickyBar = () => (
-    <View className={`px-5 py-3 ${headerBg}`}>
+    <View className={`px-5 py-3 ${stickyBarBg}`}>
       <View className="flex-row items-center justify-between gap-2 flex-wrap mb-3">
         <View className="flex-row items-center gap-2 flex-wrap min-w-0 flex-1">
           <View className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-          <Text className="text-white font-sans text-sm font-medium tracking-wide">Canlı Akış</Text>
-          <Text className="text-slate-400 text-xs font-normal shrink-0">
+          <Text className={`font-sans text-sm font-medium tracking-wide ${stickyBarText}`}>
+            Canlı Akış
+          </Text>
+          <Text className={`text-xs font-normal shrink-0 ${stickyBarMuted}`}>
             Son: {lastCheckLabel}
           </Text>
         </View>
@@ -165,25 +185,25 @@ export default function HomeScreen() {
             accessibilityLabel="Abonelik"
             accessibilityRole="button"
           >
-            <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
+            <Ionicons name="notifications-outline" size={20} color={stickyBarSearchIconColor} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={toggleTheme}
-            className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-600/50 items-center justify-center"
+            className={`w-9 h-9 rounded-lg items-center justify-center ${stickyBarIconBtn}`}
             accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
             accessibilityRole="button"
           >
-            <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color="#e2e8f0" />
+            <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color={stickyBarIconColor} />
           </TouchableOpacity>
         </View>
       </View>
       <View className="flex-row items-center gap-2 mb-3">
-        <View className={`flex-1 flex-row items-center rounded-lg pl-3 pr-2 py-2.5 ${headerInputBg}`}>
-          <Ionicons name="search" size={18} color="#94a3b8" />
+        <View className={`flex-1 flex-row items-center rounded-lg pl-3 pr-2 py-2.5 ${stickyBarInputBg}`}>
+          <Ionicons name="search" size={18} color={stickyBarSearchIconColor} />
           <TextInput
-            className="flex-1 ml-2.5 text-[15px] text-white"
+            className={`flex-1 ml-2.5 text-[15px] ${stickyBarText}`}
             placeholder="Haber ara..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor={stickyBarSearchIconColor}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -196,9 +216,9 @@ export default function HomeScreen() {
             disabled={isRefetching}
           >
             {isRefetching ? (
-              <ActivityIndicator size="small" color="#e2e8f0" />
+              <ActivityIndicator size="small" color={stickyBarIconColor} />
             ) : (
-              <Ionicons name="refresh" size={18} color="#e2e8f0" />
+              <Ionicons name="refresh" size={18} color={stickyBarIconColor} />
             )}
           </TouchableOpacity>
         </View>
@@ -206,11 +226,11 @@ export default function HomeScreen() {
       <View className="flex-row items-center gap-1">
         <TouchableOpacity
           onPress={() => countryScrollRef.current?.scrollTo({ x: 0, animated: true })}
-          className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-600/50 items-center justify-center shrink-0"
+          className={`w-10 h-10 rounded-full items-center justify-center shrink-0 ${stickyBarIconBtn}`}
           accessibilityLabel="Listeyi sola kaydır"
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={22} color="#e2e8f0" />
+          <Ionicons name="chevron-back" size={22} color={stickyBarIconColor} />
         </TouchableOpacity>
         <ScrollView
           ref={countryScrollRef}
@@ -222,12 +242,14 @@ export default function HomeScreen() {
           <TouchableOpacity
             onPress={() => setSelectedCountry(ALL_COUNTRIES)}
             className={`px-4 py-2.5 rounded-full flex-row items-center ${
-              selectedCountry === ALL_COUNTRIES ? pillSelected : pillUnselected
+              selectedCountry === ALL_COUNTRIES ? stickyBarPillSelected : stickyBarPillUnselected
             }`}
           >
             <Text
               className={
-                selectedCountry === ALL_COUNTRIES ? pillTextSelected : pillTextUnselected
+                selectedCountry === ALL_COUNTRIES
+                  ? stickyBarPillTextSelected
+                  : stickyBarPillTextUnselected
               }
             >
               Tümü
@@ -240,10 +262,14 @@ export default function HomeScreen() {
                 key={code}
                 onPress={() => setSelectedCountry(code)}
                 className={`px-4 py-2.5 rounded-full flex-row items-center gap-1.5 ${
-                  isSelected ? pillSelected : pillUnselected
+                  isSelected ? stickyBarPillSelected : stickyBarPillUnselected
                 }`}
               >
-                <Text className={isSelected ? pillTextSelected : pillTextUnselected}>
+                <Text
+                  className={
+                    isSelected ? stickyBarPillTextSelected : stickyBarPillTextUnselected
+                  }
+                >
                   {getCountryDisplayLabel(code)}
                 </Text>
               </TouchableOpacity>
@@ -252,11 +278,11 @@ export default function HomeScreen() {
         </ScrollView>
         <TouchableOpacity
           onPress={() => countryScrollRef.current?.scrollToEnd({ animated: true })}
-          className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-600/50 items-center justify-center shrink-0"
+          className={`w-10 h-10 rounded-full items-center justify-center shrink-0 ${stickyBarIconBtn}`}
           accessibilityLabel="Listeyi sağa kaydır"
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-forward" size={22} color="#e2e8f0" />
+          <Ionicons name="chevron-forward" size={22} color={stickyBarIconColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -264,14 +290,18 @@ export default function HomeScreen() {
 
   const listHeaderComponent = (
     <>
-      {/* 1) Logo + Asya-Pasifik: kaydırınca yukarı gider */}
+      {/* 1) Logo bölümü: kaydırınca yukarı gider. Masaüstü: Logo sol | Asya-Pasifik + ikonlar sağ. Mobil: logo esnek üstte. */}
       <View
         className={headerBg}
         onLayout={(e) => setLogoSectionHeight(e.nativeEvent.layout.height)}
         style={{ paddingHorizontal: 20, paddingVertical: 24 }}
       >
         <View
-          className={isNarrow ? "flex-col items-stretch gap-4" : "flex-row items-center flex-wrap"}
+          className={
+            isNarrow
+              ? "flex-col items-stretch gap-4"
+              : "flex-row items-center justify-between w-full"
+          }
           style={{ gap: isNarrow ? 16 : 0 }}
         >
           <View
@@ -291,15 +321,34 @@ export default function HomeScreen() {
               accessibilityLabel="Pusula-yı Şark logosu"
             />
           </View>
-          {!isNarrow && <View className="border-l border-slate-700 h-14 ml-4" />}
-          <View className={isNarrow ? "flex-1" : "flex-row items-center flex-1 min-w-0"}>
-            <Text className="text-slate-400 text-sm font-medium tracking-wide mr-2">
-              Asya-Pasifik Haber Ağı
-            </Text>
-          </View>
+          {!isNarrow && (
+            <View className="flex-row items-center gap-2 shrink-0">
+              <Text className="text-slate-400 text-sm font-medium tracking-wide">
+                Asya-Pasifik Haber Ağı
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  Alert.alert("Bildirimler", "Pusula-yı Şark bildirimlerini başarıyla açtınız!")
+                }
+                className="w-9 h-9 rounded-lg items-center justify-center"
+                accessibilityLabel="Abonelik"
+                accessibilityRole="button"
+              >
+                <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={toggleTheme}
+                className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-600/50 items-center justify-center"
+                accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
+                accessibilityRole="button"
+              >
+                <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color="#e2e8f0" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
-      {/* 2) Sticky bar: Web'de position:sticky ile yapışır (RN ViewStyle'da yok, web CSS için cast) */}
+      {/* 2) Sadece bu alt kısım sticky: arama, filtreler, Canlı Akış saati. Logo sticky DEĞİL. */}
       <View
         style={
           isWeb
