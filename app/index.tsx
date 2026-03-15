@@ -167,6 +167,15 @@ export default function HomeScreen() {
               accessibilityLabel="Pusula-yı Şark logosu"
             />
           </View>
+          <View
+            style={{
+              width: 1,
+              height: 40,
+              backgroundColor: "rgba(148, 163, 184, 0.5)",
+              marginHorizontal: 12,
+              alignSelf: "center",
+            }}
+          />
           <Text className="text-slate-300 text-xl font-medium tracking-wide shrink-0">
             Asya-Pasifik Haber Ağı
           </Text>
