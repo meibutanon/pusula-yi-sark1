@@ -28,6 +28,23 @@ import type { NewsRow } from "@/types/news";
 
 const ALL_COUNTRIES = "All";
 
+/** summary_tr içinden "Yönetici Özeti" ve "Bu Neden Önemli?" bölümlerini ayırır (Markdown/şık gösterim için). */
+function parseSummarySections(summary: string | undefined): { executiveSummary: string; whyItMatters: string } | null {
+  if (!summary?.trim()) return null;
+  const whyMarker = "Bu Neden Önemli?";
+  const idx = summary.indexOf(whyMarker);
+  if (idx === -1) return null;
+  const firstPart = summary.slice(0, idx).trim();
+  const secondPart = summary.slice(idx + whyMarker.length).replace(/^[:\s*]+/, "").trim();
+  const execMarker = "Yönetici Özeti";
+  const execIdx = firstPart.indexOf(execMarker);
+  const executiveSummary = execIdx >= 0
+    ? firstPart.slice(execIdx + execMarker.length).replace(/^[:\s*]+/, "").trim()
+    : firstPart;
+  if (!executiveSummary && !secondPart) return null;
+  return { executiveSummary: executiveSummary || secondPart, whyItMatters: secondPart };
+}
+
 function filterNews(
   news: NewsRow[],
   searchQuery: string,
@@ -405,16 +422,43 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
                 <ScrollView
-                  className="mt-4 max-h-52"
+                  className="mt-4 max-h-56"
                   showsVerticalScrollIndicator={true}
                 >
-                  <Text
-                    className={`text-base leading-relaxed ${
-                      isDarkMode ? "text-gray-300" : "text-slate-600"
-                    }`}
-                  >
-                    {selectedNewsItem?.summary_tr}
-                  </Text>
+                  {(() => {
+                    const sections = parseSummarySections(selectedNewsItem?.summary_tr);
+                    const bodyCls = isDarkMode ? "text-gray-300" : "text-slate-600";
+                    const headingCls = isDarkMode ? "text-slate-100" : "text-slate-800";
+                    if (sections) {
+                      return (
+                        <View className="gap-4">
+                          <View>
+                            <Text className={`text-sm font-bold uppercase tracking-wide mb-1.5 ${headingCls}`}>
+                              Yönetici Özeti
+                            </Text>
+                            <Text className={`text-base leading-relaxed ${bodyCls}`}>
+                              {sections.executiveSummary}
+                            </Text>
+                          </View>
+                          {sections.whyItMatters ? (
+                            <View>
+                              <Text className={`text-sm font-bold uppercase tracking-wide mb-1.5 ${headingCls}`}>
+                                Bu Neden Önemli?
+                              </Text>
+                              <Text className={`text-base leading-relaxed ${bodyCls}`}>
+                                {sections.whyItMatters}
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    }
+                    return (
+                      <Text className={`text-base leading-relaxed ${bodyCls}`}>
+                        {selectedNewsItem?.summary_tr}
+                      </Text>
+                    );
+                  })()}
                 </ScrollView>
                 <TouchableOpacity
                   onPress={() => {
