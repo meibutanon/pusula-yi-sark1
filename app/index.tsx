@@ -15,8 +15,6 @@ import {
   useWindowDimensions,
   Modal,
   Linking,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -82,13 +80,9 @@ export default function HomeScreen() {
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [selectedNewsItem, setSelectedNewsItem] = useState<NewsRow | null>(null);
-  const [scrollY, setScrollY] = useState(0);
-  const [logoSectionHeight, setLogoSectionHeight] = useState(200);
 
   const logoMaxWidth = Math.min(380, screenWidth - 40);
   const logoHeight = logoMaxWidth / LOGO_ASPECT;
-  const isWeb = Platform.OS === "web";
-  const showFixedStickyBar = !isWeb && scrollY > Math.max(80, logoSectionHeight - 40);
 
   useEffect(() => {
     // Web üzerinde konum sormaya çalışıp hata almamak için direkt etiketi koyuyoruz
@@ -145,163 +139,44 @@ export default function HomeScreen() {
     timeZone: userTimeZone,
   });
 
-  const stickyBarBg = isDarkMode ? "bg-gray-900" : "bg-stone-50";
-  const stickyBarInputBg = isDarkMode
-    ? "bg-slate-800/60 border border-slate-700/50"
-    : "bg-white border border-slate-200";
-  const stickyBarText = isDarkMode ? "text-white" : "text-slate-900";
-  const stickyBarMuted = isDarkMode ? "text-slate-400" : "text-slate-500";
-  const stickyBarPillUnselected = isDarkMode
-    ? "bg-slate-800/80 border border-slate-600/50"
-    : "bg-slate-100 border border-slate-200";
-  const stickyBarPillTextUnselected = isDarkMode ? "text-slate-200" : "text-slate-700";
-  const stickyBarPillSelected = isDarkMode ? "bg-white" : "bg-slate-800";
-  const stickyBarPillTextSelected = isDarkMode ? "text-slate-900" : "text-white";
-  const stickyBarIconBtn = isDarkMode
-    ? "bg-slate-800/80 border border-slate-600/50"
-    : "bg-slate-200/80 border border-slate-200";
-  const stickyBarIconColor = isDarkMode ? "#e2e8f0" : "#475569";
-  const stickyBarSearchIconColor = isDarkMode ? "#94a3b8" : "#64748b";
+  const filterInputBg = "bg-slate-800/60 border border-slate-700/50";
+  const iconColor = "#e2e8f0";
+  const iconMuted = "#94a3b8";
 
-  /** Sticky bar: Sadece Canlı Akış satırı + arama + ülke filtreleri. Zil/tema ikonları YOK (sadece üstte logo yanında). */
-  const renderStickyBar = () => (
-    <View className={`px-5 py-3 ${stickyBarBg}`}>
-      <View className="flex-row items-center gap-2 flex-wrap mb-3">
-        <View className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-        <Text className={`font-sans text-sm font-medium tracking-wide ${stickyBarText}`}>
-          Canlı Akış
-        </Text>
-        <Text className={`text-xs font-normal shrink-0 ${stickyBarMuted}`}>
-          Son: {lastCheckLabel}
-        </Text>
-      </View>
-      <View className="flex-row items-center gap-2 mb-3">
-        <View className={`flex-1 flex-row items-center rounded-lg pl-3 pr-2 py-2.5 ${stickyBarInputBg}`}>
-          <Ionicons name="search" size={18} color={stickyBarSearchIconColor} />
-          <TextInput
-            className={`flex-1 ml-2.5 text-[15px] ${stickyBarText}`}
-            placeholder="Haber ara..."
-            placeholderTextColor={stickyBarSearchIconColor}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-          <TouchableOpacity
-            onPress={handleRefresh}
-            className="w-9 h-9 rounded-lg items-center justify-center"
-            accessibilityLabel="Yenile"
-            accessibilityRole="button"
-            disabled={isRefetching}
-          >
-            {isRefetching ? (
-              <ActivityIndicator size="small" color={stickyBarIconColor} />
-            ) : (
-              <Ionicons name="refresh" size={18} color={stickyBarIconColor} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View className="flex-row items-center gap-1">
-        <TouchableOpacity
-          onPress={() => countryScrollRef.current?.scrollTo({ x: 0, animated: true })}
-          className={`w-10 h-10 rounded-full items-center justify-center shrink-0 ${stickyBarIconBtn}`}
-          accessibilityLabel="Listeyi sola kaydır"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={22} color={stickyBarIconColor} />
-        </TouchableOpacity>
-        <ScrollView
-          ref={countryScrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingLeft: 8, paddingRight: 24 }}
-          className="flex-1"
-        >
-          <TouchableOpacity
-            onPress={() => setSelectedCountry(ALL_COUNTRIES)}
-            className={`px-4 py-2.5 rounded-full flex-row items-center ${
-              selectedCountry === ALL_COUNTRIES ? stickyBarPillSelected : stickyBarPillUnselected
-            }`}
-          >
-            <Text
-              className={
-                selectedCountry === ALL_COUNTRIES
-                  ? stickyBarPillTextSelected
-                  : stickyBarPillTextUnselected
-              }
-            >
-              Tümü
-            </Text>
-          </TouchableOpacity>
-          {countryCodes.map((code) => {
-            const isSelected = selectedCountry === code;
-            return (
-              <TouchableOpacity
-                key={code}
-                onPress={() => setSelectedCountry(code)}
-                className={`px-4 py-2.5 rounded-full flex-row items-center gap-1.5 ${
-                  isSelected ? stickyBarPillSelected : stickyBarPillUnselected
-                }`}
-              >
-                <Text
-                  className={
-                    isSelected ? stickyBarPillTextSelected : stickyBarPillTextUnselected
-                  }
-                >
-                  {getCountryDisplayLabel(code)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-        <TouchableOpacity
-          onPress={() => countryScrollRef.current?.scrollToEnd({ animated: true })}
-          className={`w-10 h-10 rounded-full items-center justify-center shrink-0 ${stickyBarIconBtn}`}
-          accessibilityLabel="Listeyi sağa kaydır"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-forward" size={22} color={stickyBarIconColor} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  const logoSection = (
-    <View
-      key="header-logo"
-      className={headerBg}
-      onLayout={(e) => setLogoSectionHeight(e.nativeEvent.layout.height)}
-      style={{ paddingHorizontal: 20, paddingVertical: 24 }}
-    >
+  const listHeaderComponent = (
+    <View className={headerBg}>
+      {/* Üst satır: Logo + Asya-Pasifik (sol) | Canlı Akış + Saat + İkonlar (sağ). Masaüstü space-between, mobil flex-wrap. */}
       <View
-        className={
-          isNarrow
-            ? "flex-col items-stretch gap-4"
-            : "flex-row items-center justify-between w-full"
-        }
-        style={{ gap: isNarrow ? 16 : 0 }}
+        className={`px-5 pt-5 pb-4 flex-row items-center justify-between ${isNarrow ? "flex-wrap gap-3" : ""}`}
       >
-        <View
-          className="logo-wrap"
-          style={{
-            maxWidth: logoMaxWidth,
-            width: isNarrow ? "100%" : logoMaxWidth,
-            height: logoHeight,
-            backgroundColor: "transparent",
-            overflow: "hidden",
-          }}
-        >
-          <Image
-            source={require("../assets/logo-seffaf.png.png")}
-            resizeMode="contain"
-            style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
-            accessibilityLabel="Pusula-yı Şark logosu"
-          />
-        </View>
-        <View className={isNarrow ? "flex-row items-center justify-between flex-wrap gap-2" : "flex-row items-center gap-2 shrink-0"}>
-          <Text className="text-slate-400 text-sm font-medium tracking-wide">
+        <View className={`flex-row items-center ${isNarrow ? "w-full" : ""}`} style={{ gap: 8 }}>
+          <View
+            className="logo-wrap"
+            style={{
+              maxWidth: logoMaxWidth,
+              width: isNarrow ? "100%" : logoMaxWidth,
+              height: logoHeight,
+              backgroundColor: "transparent",
+              overflow: "hidden",
+            }}
+          >
+            <Image
+              source={require("../assets/logo-seffaf.png.png")}
+              resizeMode="contain"
+              style={{ width: "100%", height: "100%", backgroundColor: "transparent" }}
+              accessibilityLabel="Pusula-yı Şark logosu"
+            />
+          </View>
+          <Text className="text-slate-300 text-xl font-medium tracking-wide shrink-0">
             Asya-Pasifik Haber Ağı
           </Text>
+        </View>
+        <View className={`flex-row items-center flex-wrap gap-2 ${isNarrow ? "w-full justify-end" : "shrink-0"}`}>
+          <View className="flex-row items-center gap-2">
+            <View className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+            <Text className="text-white font-sans text-sm font-medium tracking-wide">Canlı Akış</Text>
+          </View>
+          <Text className="text-slate-400 text-sm">Son: {lastCheckLabel}</Text>
           <View className="flex-row items-center gap-1">
             <TouchableOpacity
               onPress={() =>
@@ -311,7 +186,7 @@ export default function HomeScreen() {
               accessibilityLabel="Abonelik"
               accessibilityRole="button"
             >
-              <Ionicons name="notifications-outline" size={20} color="#94a3b8" />
+              <Ionicons name="notifications-outline" size={20} color={iconMuted} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={toggleTheme}
@@ -319,33 +194,99 @@ export default function HomeScreen() {
               accessibilityLabel={isDarkMode ? "Açık tema" : "Koyu tema"}
               accessibilityRole="button"
             >
-              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color="#e2e8f0" />
+              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color={iconColor} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
+
+      {/* Alt satır: Arama + Ülke filtreleri, boydan boya */}
+      <View className="px-5 pb-5">
+        <View className="flex-row items-center gap-2 mb-4">
+          <View className={`flex-1 flex-row items-center rounded-lg pl-3 pr-2 py-2.5 ${filterInputBg}`}>
+            <Ionicons name="search" size={18} color={iconMuted} />
+            <TextInput
+              className="flex-1 ml-2.5 text-[15px] text-white"
+              placeholder="Haber ara..."
+              placeholderTextColor="#64748b"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+            <TouchableOpacity
+              onPress={handleRefresh}
+              className="w-9 h-9 rounded-lg items-center justify-center"
+              accessibilityLabel="Yenile"
+              accessibilityRole="button"
+              disabled={isRefetching}
+            >
+              {isRefetching ? (
+                <ActivityIndicator size="small" color={iconColor} />
+              ) : (
+                <Ionicons name="refresh" size={18} color={iconColor} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View className="flex-row items-center gap-1">
+          <TouchableOpacity
+            onPress={() => countryScrollRef.current?.scrollTo({ x: 0, animated: true })}
+            className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-600/50 items-center justify-center shrink-0"
+            accessibilityLabel="Listeyi sola kaydır"
+            accessibilityRole="button"
+          >
+            <Ionicons name="chevron-back" size={22} color={iconColor} />
+          </TouchableOpacity>
+          <ScrollView
+            ref={countryScrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8, paddingLeft: 8, paddingRight: 24 }}
+            className="flex-1"
+          >
+            <TouchableOpacity
+              onPress={() => setSelectedCountry(ALL_COUNTRIES)}
+              className={`px-4 py-2.5 rounded-full flex-row items-center ${
+                selectedCountry === ALL_COUNTRIES ? pillSelected : pillUnselected
+              }`}
+            >
+              <Text
+                className={
+                  selectedCountry === ALL_COUNTRIES ? pillTextSelected : pillTextUnselected
+                }
+              >
+                Tümü
+              </Text>
+            </TouchableOpacity>
+            {countryCodes.map((code) => {
+              const isSelected = selectedCountry === code;
+              return (
+                <TouchableOpacity
+                  key={code}
+                  onPress={() => setSelectedCountry(code)}
+                  className={`px-4 py-2.5 rounded-full flex-row items-center gap-1.5 ${
+                    isSelected ? pillSelected : pillUnselected
+                  }`}
+                >
+                  <Text className={isSelected ? pillTextSelected : pillTextUnselected}>
+                    {getCountryDisplayLabel(code)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <TouchableOpacity
+            onPress={() => countryScrollRef.current?.scrollToEnd({ animated: true })}
+            className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-600/50 items-center justify-center shrink-0"
+            accessibilityLabel="Listeyi sağa kaydır"
+            accessibilityRole="button"
+          >
+            <Ionicons name="chevron-forward" size={22} color={iconColor} />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
-
-  const themeBg = isDarkMode ? "#111827" : "#fafaf9";
-
-  const part2StickyBar = (
-    <View
-      key="header-sticky"
-      style={
-        isWeb
-          ? ({ position: "sticky", top: 0, zIndex: 100, backgroundColor: themeBg } as Record<
-              string,
-              number | string
-            >)
-          : { backgroundColor: themeBg }
-      }
-    >
-      {renderStickyBar()}
-    </View>
-  );
-
-  const listHeaderComponent = [logoSection, part2StickyBar];
 
   const screenBg = isDarkMode ? "bg-gray-900" : "bg-stone-50";
   const loadingColor = isDarkMode ? "#e2e8f0" : "#0f172a";
@@ -380,10 +321,6 @@ export default function HomeScreen() {
     );
   }
 
-  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setScrollY(e.nativeEvent.contentOffset.y);
-  };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -391,21 +328,6 @@ export default function HomeScreen() {
       style={{ paddingTop: insets.top }}
     >
       <View className="flex-1">
-        {/* Native: kaydırınca üstte sabit kalan bar (web'de ListHeader içindeki sticky kullanılır) */}
-        {showFixedStickyBar && (
-          <View
-            pointerEvents="box-none"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 50,
-            }}
-          >
-            {renderStickyBar()}
-          </View>
-        )}
         {isRefetching && (
           <View
             className="absolute inset-0 z-10 justify-center items-center bg-slate-950/60"
@@ -526,9 +448,7 @@ export default function HomeScreen() {
           renderItem={({ item }) => (
             <NewsCard item={item} onPress={setSelectedNewsItem} />
           )}
-          ListHeaderComponent={() => listHeaderComponent}
-          onScroll={handleScroll}
-          scrollEventThrottle={32}
+          ListHeaderComponent={listHeaderComponent}
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
