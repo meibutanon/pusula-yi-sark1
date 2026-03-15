@@ -77,9 +77,9 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
     country_code: "CN",
     country_name_en: "China",
     sources: [
-      { kind: "rss", url: "https://www.scmp.com/rss/91/feed", name: "SCMP (Hong Kong)", category: C.SonDakika },
-      { kind: "rss", url: "http://en.people.cn/rss/world.xml", name: "People's Daily (Anakara)", category: C.Siyaset },
-      { kind: "rss", url: "https://www.globaltimes.cn/rss/world.xml", name: "Global Times", category: C.SonDakika },
+      { kind: "rss", url: "https://www.chinadaily.com.cn/rss/china_rss.xml", name: "China Daily", category: C.SonDakika },
+      { kind: "rss", url: "https://www.scmp.com/rss/2/feed", name: "SCMP China", category: C.Siyaset },
+      { kind: "rss", url: "https://hongkongfp.com/feed/", name: "HKFP", category: C.Siyaset },
     ],
   },
   {
