@@ -327,13 +327,25 @@ export default function HomeScreen() {
     </View>
   );
 
-  const stickySection = (
-    <View key="header-sticky" style={{ backgroundColor: isDarkMode ? "#111827" : "#fafaf9" }}>
+  const themeBg = isDarkMode ? "#111827" : "#fafaf9";
+
+  const part2StickyBar = (
+    <View
+      key="header-sticky"
+      style={
+        isWeb
+          ? ({ position: "sticky", top: 0, zIndex: 100, backgroundColor: themeBg } as Record<
+              string,
+              number | string
+            >)
+          : { backgroundColor: themeBg }
+      }
+    >
       {renderStickyBar()}
     </View>
   );
 
-  const listHeaderComponent = [logoSection, stickySection];
+  const listHeaderComponent = [logoSection, part2StickyBar];
 
   const screenBg = isDarkMode ? "bg-gray-900" : "bg-stone-50";
   const loadingColor = isDarkMode ? "#e2e8f0" : "#0f172a";
@@ -515,7 +527,6 @@ export default function HomeScreen() {
             <NewsCard item={item} onPress={setSelectedNewsItem} />
           )}
           ListHeaderComponent={() => listHeaderComponent}
-          stickyHeaderIndices={[1]}
           onScroll={handleScroll}
           scrollEventThrottle={32}
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
