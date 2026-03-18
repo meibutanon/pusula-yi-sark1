@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNews } from "@/hooks/useNews";
 import { useTheme } from "@/contexts/ThemeContext";
 import { NewsCard } from "@/components/NewsCard";
-import { getAllCountryCodes } from "@/config/newsSources";
+import { getAllCountryCodes, REPORT_COUNTRY_CODE } from "@/config/newsSources";
 import { getCountryDisplayLabel } from "@/utils/countryNames";
 import { getLocalTimeZone } from "@/utils/formatDate";
 import type { NewsRow } from "@/types/news";
@@ -74,6 +74,7 @@ export default function HomeScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const isNarrow = screenWidth < 640;
   const { isDarkMode, toggleTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<"haberler" | "raporlar">("haberler");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(ALL_COUNTRIES);
   const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
@@ -85,9 +86,12 @@ export default function HomeScreen() {
   const logoHeight = logoMaxWidth / LOGO_ASPECT;
 
   useEffect(() => {
-    // Web üzerinde konum sormaya çalışıp hata almamak için direkt etiketi koyuyoruz
     setLocationLabel("Dünya Geneli");
   }, []);
+
+  useEffect(() => {
+    setSelectedCountry(ALL_COUNTRIES);
+  }, [activeTab]);
   
   const handleRefresh = async () => {
     setLastCheckedAt(new Date());
@@ -108,6 +112,7 @@ export default function HomeScreen() {
       })
     : "--";
 
+  const reportsOnly = activeTab === "raporlar";
   const {
     data: news = [],
     isLoading,
@@ -115,14 +120,17 @@ export default function HomeScreen() {
     error,
     refetch,
     isRefetching,
-  } = useNews();
+  } = useNews(reportsOnly);
 
   const filteredNews = useMemo(
     () => filterNews(news, searchQuery, selectedCountry),
     [news, searchQuery, selectedCountry]
   );
 
-  const countryCodes = useMemo(() => getAllCountryCodes(), []);
+  const countryCodes = useMemo(
+    () => (reportsOnly ? [REPORT_COUNTRY_CODE] : getAllCountryCodes()),
+    [reportsOnly]
+  );
   const countryScrollRef = useRef<ScrollView>(null);
 
   const headerBg = "bg-slate-950";
@@ -209,8 +217,58 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Alt satır: Arama + Ülke filtreleri, boydan boya */}
+      {/* Arama çubuğunun hemen üstü: yan yana iki büyük sekme butonu */}
       <View className="px-5 pb-5">
+        <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => setActiveTab("haberler")}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              paddingHorizontal: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              borderBottomWidth: activeTab === "haberler" ? 4 : 0,
+              borderBottomColor: "#fbbf24",
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === "haberler" }}
+          >
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: activeTab === "haberler" ? "700" : "500",
+                color: activeTab === "haberler" ? "#fbbf24" : "#94a3b8",
+              }}
+            >
+              Son Dakika (Haberler)
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveTab("raporlar")}
+            style={{
+              flex: 1,
+              paddingVertical: 14,
+              paddingHorizontal: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              borderBottomWidth: activeTab === "raporlar" ? 4 : 0,
+              borderBottomColor: "#fbbf24",
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeTab === "raporlar" }}
+          >
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: activeTab === "raporlar" ? "700" : "500",
+                color: activeTab === "raporlar" ? "#fbbf24" : "#94a3b8",
+              }}
+            >
+              Stratejik Raporlar
+            </Text>
+          </TouchableOpacity>
+        </View>
         <View className="flex-row items-center gap-2 mb-4">
           <View className={`flex-1 flex-row items-center rounded-lg pl-3 pr-2 py-2.5 ${filterInputBg}`}>
             <Ionicons name="search" size={18} color={iconMuted} />

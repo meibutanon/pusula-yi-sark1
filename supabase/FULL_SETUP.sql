@@ -13,14 +13,16 @@ create table if not exists public.news (
   summary_tr text not null,
   source_url text not null unique,
   country_code text not null,
+  is_report boolean not null default false,
   created_at timestamptz not null default now()
 );
 
 create index if not exists idx_news_country_code on public.news (country_code);
 create index if not exists idx_news_created_at on public.news (created_at desc);
 create index if not exists idx_news_source_url on public.news (source_url);
+create index if not exists idx_news_is_report on public.news (is_report);
 
-comment on table public.news is 'Asya-Pasifik bölgesi haberleri (Türkçe başlık/özet)';
+comment on table public.news is 'Asya-Pasifik bölgesi haberleri ve stratejik raporlar (Türkçe başlık/özet)';
 
 -- -----------------------------------------------------------------------------
 -- 2. ROW LEVEL SECURITY (RLS)

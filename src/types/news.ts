@@ -8,6 +8,7 @@ export interface NewsItem {
   source_url: string;
   country_code: string;
   timestamp: string; // ISO 8601
+  is_report?: boolean;
 }
 
 /** Veritabanındaki news tablosu satırı */
@@ -17,6 +18,7 @@ export interface NewsRow {
   summary_tr: string;
   source_url: string;
   country_code: string;
+  is_report?: boolean;
   created_at: string; // ISO 8601
 }
 

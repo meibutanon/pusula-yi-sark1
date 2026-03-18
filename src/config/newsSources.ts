@@ -155,6 +155,29 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
   },
 ];
 
+/** Stratejik rapor / think tank kaynakları (RSS). Hepsi is_report: true ve country_code: RP ile kaydedilir. */
+export interface ReportSourceItem {
+  kind: "rss";
+  url: string;
+  name: string;
+  category?: string;
+}
+
+export const REPORT_CATEGORY = "Stratejik Analiz" as const;
+/** Raporlar sekmesinde kullanılan sabit ülke kodu (Stratejik Raporlar). */
+export const REPORT_COUNTRY_CODE = "RP";
+
+export const reportSources: ReportSourceItem[] = [
+  { kind: "rss", url: "https://thediplomat.com/feed/", name: "The Diplomat", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.csis.org/analysis/feed", name: "CSIS", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.aspistrategist.org.au/feed/", name: "ASPI The Strategist", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.rand.org/pubs/new.xml", name: "RAND Research", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.rand.org/pubs/commentary.xml", name: "RAND Commentary", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.lowyinstitute.org/feed", name: "Lowy Institute", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.scmp.com/rss/91/feed", name: "SCMP Insight & Opinion", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://www.nbr.org/feed/", name: "NBR", category: REPORT_CATEGORY },
+];
+
 export function getConfigByCountryCode(code: string): CountryNewsConfig | undefined {
   return ASIA_PACIFIC_NEWS_CONFIG.find(
     (c) => c.country_code.toUpperCase() === code.toUpperCase()

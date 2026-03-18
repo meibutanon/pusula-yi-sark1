@@ -18,6 +18,7 @@ const COUNTRY_NAMES_TR: Record<string, string> = {
   MY: "Malezya",
   PH: "Filipinler",
   TW: "Tayvan",
+  RP: "Stratejik Raporlar",
 };
 
 export function getCountryNameTr(countryCode: string): string {

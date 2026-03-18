@@ -8,12 +8,22 @@ import type { NewsRow } from "@/types/news";
 
 const NEWS_TABLE = "news";
 
-export async function fetchNewsFromSupabase(): Promise<NewsRow[]> {
+/**
+ * Supabase'den haber veya sadece rapor listesini çeker.
+ * @param reportsOnly true ise sadece is_report === true kayıtlar döner (Stratejik Raporlar sekmesi için).
+ */
+export async function fetchNewsFromSupabase(reportsOnly?: boolean): Promise<NewsRow[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  let q = supabase
     .from(NEWS_TABLE)
-    .select("id, title, summary_tr, source_url, country_code, created_at")
+    .select("id, title, summary_tr, source_url, country_code, is_report, created_at")
     .order("created_at", { ascending: false });
+  if (reportsOnly === true) {
+    q = q.eq("is_report", true);
+  } else {
+    q = q.or("is_report.eq.false,is_report.is.null");
+  }
+  const { data, error } = await q;
 
   if (error) {
     const msg = error.message ?? "";

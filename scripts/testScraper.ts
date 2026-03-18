@@ -7,7 +7,7 @@
  */
 
 import "dotenv/config";
-import { scrapeAll } from "../src/services/newsScraper";
+import { scrapeAll, scrapeReports } from "../src/services/newsScraper";
 
 function checkEnv() {
   const url = process.env.SUPABASE_URL ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -45,6 +45,17 @@ async function main() {
   if (items.length === 0) {
     console.log("Scraper çalıştı. Yeni link yok; zaten var olan linkleri kullandım, veritabanına ek kayıt yazılmadı.");
   }
+
+  console.log("\nStratejik raporlar çekiliyor (scrapeReports)...\n");
+  const reports = await scrapeReports();
+  const first3Reports = reports.slice(0, 3);
+  console.log(`\nToplam ${reports.length} yeni rapor işlendi. İlk 3:\n`);
+  first3Reports.forEach((item, i) => {
+    console.log(`--- RP ${i + 1} ---`);
+    console.log("title:", item.title);
+    console.log("source_url:", item.source_url);
+    console.log();
+  });
 }
 
 main().catch((err) => {

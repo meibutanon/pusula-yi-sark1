@@ -11,6 +11,8 @@ import { getSupabase } from "@/lib/supabase";
 import {
   ASIA_PACIFIC_NEWS_CONFIG,
   getConfigByCountryCode,
+  REPORT_COUNTRY_CODE,
+  reportSources,
   type CountryNewsConfig,
   type NewsSourceItem,
 } from "@/config/newsSources";
@@ -47,6 +49,7 @@ export async function getExistingSourceUrls(
 /**
  * Haberleri Supabase news tablosuna ekler.
  * source_url unique olduğu için tekrar varsa DB hatası alınır; önce getExistingSourceUrls ile filtreleyin.
+ * Raporlar için item.is_report === true ve item.country_code genelde REPORT_COUNTRY_CODE olmalı.
  */
 export async function saveNewsToSupabase(items: NewsItem[]): Promise<number> {
   if (items.length === 0) return 0;
@@ -56,6 +59,7 @@ export async function saveNewsToSupabase(items: NewsItem[]): Promise<number> {
     summary_tr: item.summary_tr,
     source_url: item.source_url,
     country_code: item.country_code,
+    is_report: item.is_report ?? false,
     created_at: item.timestamp,
   }));
   const { data, error } = await supabase.from(NEWS_TABLE).insert(rows).select("id");
@@ -231,4 +235,60 @@ export async function scrapeAll(
     console.log(`[newsScraper] Toplam ${all.length} yeni haber eklendi.`);
   }
   return all;
+}
+
+/** Raporlar için ülke başına işlenecek maksimum yeni öğe (API kotası). */
+const MAX_REPORT_ITEMS_PER_SOURCE = 15;
+
+/**
+ * Stratejik rapor kaynaklarından (reportSources) RSS çeker, çevirir ve Supabase'e is_report: true, country_code: RP ile kaydeder.
+ */
+export async function scrapeReports(): Promise<NewsItem[]> {
+  const allRaw: RawNewsItem[] = [];
+  for (const source of reportSources) {
+    if (source.kind !== "rss") continue;
+    try {
+      const items = await fetchRssFeed(source.url);
+      allRaw.push(...items);
+    } catch (err) {
+      console.warn(`[newsScraper] Report source failed ${source.name}:`, err);
+    }
+  }
+  const seen = new Set<string>();
+  const unique = allRaw.filter((i) => {
+    if (seen.has(i.link)) return false;
+    seen.add(i.link);
+    return true;
+  });
+  unique.sort((a, b) => {
+    const tA = a.isoDate ?? a.pubDate ?? "";
+    const tB = b.isoDate ?? b.pubDate ?? "";
+    return tB.localeCompare(tA);
+  });
+
+  const urls = unique.map((i) => i.link);
+  const existingUrls = await getExistingSourceUrls(urls);
+  const newRaw = unique.filter((i) => !existingUrls.has(i.link));
+  const toProcess = newRaw.slice(0, MAX_REPORT_ITEMS_PER_SOURCE * reportSources.length);
+  console.log(
+    `[newsScraper] Raporlar: ${unique.length} RSS öğesi, ${existingUrls.size} zaten DB'de, ${newRaw.length} yeni (çeviri + kayıt)`
+  );
+
+  const results: NewsItem[] = [];
+  for (const raw of toProcess) {
+    try {
+      const item = await toNewsItem(raw, REPORT_COUNTRY_CODE);
+      item.is_report = true;
+      results.push(item);
+    } catch (err) {
+      console.warn("[newsScraper] Report translate failed for:", raw.link, err);
+    }
+  }
+
+  if (results.length > 0) {
+    const saved = await saveNewsToSupabase(results);
+    if (saved === 0) console.warn("[newsScraper] Rapor kayıt yapıldı ama insert sonucu 0 döndü.");
+    console.log(`[newsScraper] Toplam ${saved} yeni rapor eklendi.`);
+  }
+  return results;
 }

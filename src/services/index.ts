@@ -5,4 +5,5 @@ export {
   scrapeCountry,
   scrapeFromConfig,
   scrapeAll,
+  scrapeReports,
 } from "./newsScraper";

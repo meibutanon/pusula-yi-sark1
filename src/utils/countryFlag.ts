@@ -17,6 +17,7 @@ const FLAG_AND_NAME: Record<string, string> = {
   MY: "🇲🇾 Malezya",
   PH: "🇵🇭 Filipinler",
   TW: "🇹🇼 Tayvan",
+  RP: "📋 Stratejik Raporlar",
 };
 
 /**
