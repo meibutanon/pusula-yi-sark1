@@ -21,8 +21,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNews } from "@/hooks/useNews";
 import { useTheme } from "@/contexts/ThemeContext";
 import { NewsCard } from "@/components/NewsCard";
-import { getAllCountryCodes, REPORT_COUNTRY_CODE } from "@/config/newsSources";
+import { getAllCountryCodes } from "@/config/newsSources";
 import { getCountryDisplayLabel } from "@/utils/countryNames";
+import { stripMarkdownFromSummary } from "@/utils/stripMarkdown";
 import { getLocalTimeZone } from "@/utils/formatDate";
 import type { NewsRow } from "@/types/news";
 
@@ -30,12 +31,13 @@ const ALL_COUNTRIES = "All";
 
 /** summary_tr içinden "Yönetici Özeti" ve "Bu Neden Önemli?" bölümlerini ayırır (Markdown/şık gösterim için). */
 function parseSummarySections(summary: string | undefined): { executiveSummary: string; whyItMatters: string } | null {
-  if (!summary?.trim()) return null;
+  const cleaned = stripMarkdownFromSummary(summary);
+  if (!cleaned) return null;
   const whyMarker = "Bu Neden Önemli?";
-  const idx = summary.indexOf(whyMarker);
+  const idx = cleaned.indexOf(whyMarker);
   if (idx === -1) return null;
-  const firstPart = summary.slice(0, idx).trim();
-  const secondPart = summary.slice(idx + whyMarker.length).replace(/^[:\s*]+/, "").trim();
+  const firstPart = cleaned.slice(0, idx).trim();
+  const secondPart = cleaned.slice(idx + whyMarker.length).replace(/^[:\s*]+/, "").trim();
   const execMarker = "Yönetici Özeti";
   const execIdx = firstPart.indexOf(execMarker);
   const executiveSummary = execIdx >= 0
@@ -113,6 +115,7 @@ export default function HomeScreen() {
     : "--";
 
   const reportsOnly = activeTab === "raporlar";
+  const countryFilter = selectedCountry === ALL_COUNTRIES ? undefined : selectedCountry;
   const {
     data: news = [],
     isLoading,
@@ -120,17 +123,15 @@ export default function HomeScreen() {
     error,
     refetch,
     isRefetching,
-  } = useNews(reportsOnly);
+  } = useNews(reportsOnly, countryFilter);
 
   const filteredNews = useMemo(
     () => filterNews(news, searchQuery, selectedCountry),
     [news, searchQuery, selectedCountry]
   );
 
-  const countryCodes = useMemo(
-    () => (reportsOnly ? [REPORT_COUNTRY_CODE] : getAllCountryCodes()),
-    [reportsOnly]
-  );
+  /* Her iki sekmede de aynı ülke butonları (Tümü + JP, KR, AU vb.). Raporlar sekmesinde ekstra "Stratejik Raporlar" pill gösterme. */
+  const countryCodes = useMemo(() => getAllCountryCodes(), []);
   const countryScrollRef = useRef<ScrollView>(null);
 
   const headerBg = "bg-slate-950";
@@ -481,7 +482,7 @@ export default function HomeScreen() {
                     }
                     return (
                       <Text className={`text-base leading-relaxed ${bodyCls}`}>
-                        {selectedNewsItem?.summary_tr}
+                        {stripMarkdownFromSummary(selectedNewsItem?.summary_tr)}
                       </Text>
                     );
                   })()}

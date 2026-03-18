@@ -240,45 +240,49 @@ export async function scrapeAll(
 /** Raporlar için ülke başına işlenecek maksimum yeni öğe (API kotası). */
 const MAX_REPORT_ITEMS_PER_SOURCE = 15;
 
+/** Kaynak bilgisi ile etiketlenmiş ham rapor öğesi (sadece countAsReport kaynaklardan gelenler rapor sayılır). */
+type RawWithSource = { raw: RawNewsItem; source: (typeof reportSources)[number] };
+
 /**
- * Stratejik rapor kaynaklarından (reportSources) RSS çeker, çevirir ve Supabase'e is_report: true, country_code: RP ile kaydeder.
+ * Stratejik rapor kaynaklarından (reportSources) RSS çeker. Sadece countAsReport: true olan kaynaklardan gelenler is_report: true ile kaydedilir; The Diplomat, SCMP vb. is_report: false.
  */
 export async function scrapeReports(): Promise<NewsItem[]> {
-  const allRaw: RawNewsItem[] = [];
+  const allRawWithSource: RawWithSource[] = [];
   for (const source of reportSources) {
     if (source.kind !== "rss") continue;
     try {
       const items = await fetchRssFeed(source.url);
-      allRaw.push(...items);
+      items.forEach((raw) => allRawWithSource.push({ raw, source }));
     } catch (err) {
       console.warn(`[newsScraper] Report source failed ${source.name}:`, err);
     }
   }
   const seen = new Set<string>();
-  const unique = allRaw.filter((i) => {
-    if (seen.has(i.link)) return false;
-    seen.add(i.link);
+  const unique = allRawWithSource.filter(({ raw }) => {
+    if (seen.has(raw.link)) return false;
+    seen.add(raw.link);
     return true;
   });
   unique.sort((a, b) => {
-    const tA = a.isoDate ?? a.pubDate ?? "";
-    const tB = b.isoDate ?? b.pubDate ?? "";
+    const tA = a.raw.isoDate ?? a.raw.pubDate ?? "";
+    const tB = b.raw.isoDate ?? b.raw.pubDate ?? "";
     return tB.localeCompare(tA);
   });
 
-  const urls = unique.map((i) => i.link);
+  const urls = unique.map(({ raw }) => raw.link);
   const existingUrls = await getExistingSourceUrls(urls);
-  const newRaw = unique.filter((i) => !existingUrls.has(i.link));
-  const toProcess = newRaw.slice(0, MAX_REPORT_ITEMS_PER_SOURCE * reportSources.length);
+  const newItems = unique.filter(({ raw }) => !existingUrls.has(raw.link));
+  const toProcess = newItems.slice(0, MAX_REPORT_ITEMS_PER_SOURCE * reportSources.length);
   console.log(
-    `[newsScraper] Raporlar: ${unique.length} RSS öğesi, ${existingUrls.size} zaten DB'de, ${newRaw.length} yeni (çeviri + kayıt)`
+    `[newsScraper] Raporlar: ${unique.length} RSS öğesi, ${existingUrls.size} zaten DB'de, ${newItems.length} yeni (çeviri + kayıt)`
   );
 
   const results: NewsItem[] = [];
-  for (const raw of toProcess) {
+  for (const { raw, source } of toProcess) {
     try {
-      const item = await toNewsItem(raw, REPORT_COUNTRY_CODE);
-      item.is_report = true;
+      const countryCode = source.country_code ?? REPORT_COUNTRY_CODE;
+      const item = await toNewsItem(raw, countryCode);
+      item.is_report = source.countAsReport;
       results.push(item);
     } catch (err) {
       console.warn("[newsScraper] Report translate failed for:", raw.link, err);
@@ -288,7 +292,8 @@ export async function scrapeReports(): Promise<NewsItem[]> {
   if (results.length > 0) {
     const saved = await saveNewsToSupabase(results);
     if (saved === 0) console.warn("[newsScraper] Rapor kayıt yapıldı ama insert sonucu 0 döndü.");
-    console.log(`[newsScraper] Toplam ${saved} yeni rapor eklendi.`);
+    const reportCount = results.filter((r) => r.is_report).length;
+    console.log(`[newsScraper] Toplam ${saved} yeni kayıt (${reportCount} rapor, ${saved - reportCount} haber olarak işlendi).`);
   }
   return results;
 }

@@ -11,8 +11,12 @@ const NEWS_TABLE = "news";
 /**
  * Supabase'den haber veya sadece rapor listesini çeker.
  * @param reportsOnly true ise sadece is_report === true kayıtlar döner (Stratejik Raporlar sekmesi için).
+ * @param countryCode Raporlar sekmesinde ülke seçildiğinde (örn. "AU", "JP"); "All" veya boş ise uygulanmaz.
  */
-export async function fetchNewsFromSupabase(reportsOnly?: boolean): Promise<NewsRow[]> {
+export async function fetchNewsFromSupabase(
+  reportsOnly?: boolean,
+  countryCode?: string
+): Promise<NewsRow[]> {
   const supabase = getSupabase();
   let q = supabase
     .from(NEWS_TABLE)
@@ -20,8 +24,14 @@ export async function fetchNewsFromSupabase(reportsOnly?: boolean): Promise<News
     .order("created_at", { ascending: false });
   if (reportsOnly === true) {
     q = q.eq("is_report", true);
+    if (countryCode && countryCode !== "All") {
+      q = q.eq("country_code", countryCode);
+    }
   } else {
     q = q.or("is_report.eq.false,is_report.is.null");
+    if (countryCode && countryCode !== "All") {
+      q = q.eq("country_code", countryCode);
+    }
   }
   const { data, error } = await q;
 

@@ -155,27 +155,31 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
   },
 ];
 
-/** Stratejik rapor / think tank kaynakları (RSS). Hepsi is_report: true ve country_code: RP ile kaydedilir. */
+/** Stratejik rapor / think tank kaynakları (RSS). Sadece countAsReport: true olanlar Stratejik Raporlar sekmesinde listelenir. */
 export interface ReportSourceItem {
   kind: "rss";
   url: string;
   name: string;
   category?: string;
+  /** true = think tank/rapor (CSIS, RAND, ASPI, Lowy, NBR). false = haber/analiz sitesi (The Diplomat, SCMP) -> is_report: false */
+  countAsReport: boolean;
+  /** Ülke filtresi: RP = bölgesel/genel, AU = Avustralya. Raporlar sekmesinde ülke seçildiğinde buna göre filtrelenir. */
+  country_code: string;
 }
 
 export const REPORT_CATEGORY = "Stratejik Analiz" as const;
-/** Raporlar sekmesinde kullanılan sabit ülke kodu (Stratejik Raporlar). */
+/** Raporlar sekmesinde kullanılan sabit ülke kodu (bölgesel/genel). */
 export const REPORT_COUNTRY_CODE = "RP";
 
 export const reportSources: ReportSourceItem[] = [
-  { kind: "rss", url: "https://thediplomat.com/feed/", name: "The Diplomat", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.csis.org/analysis/feed", name: "CSIS", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.aspistrategist.org.au/feed/", name: "ASPI The Strategist", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.rand.org/pubs/new.xml", name: "RAND Research", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.rand.org/pubs/commentary.xml", name: "RAND Commentary", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.lowyinstitute.org/feed", name: "Lowy Institute", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.scmp.com/rss/91/feed", name: "SCMP Insight & Opinion", category: REPORT_CATEGORY },
-  { kind: "rss", url: "https://www.nbr.org/feed/", name: "NBR", category: REPORT_CATEGORY },
+  { kind: "rss", url: "https://thediplomat.com/feed/", name: "The Diplomat", category: REPORT_CATEGORY, countAsReport: false, country_code: "RP" },
+  { kind: "rss", url: "https://www.csis.org/analysis/feed", name: "CSIS", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
+  { kind: "rss", url: "https://www.aspistrategist.org.au/feed/", name: "ASPI The Strategist", category: REPORT_CATEGORY, countAsReport: true, country_code: "AU" },
+  { kind: "rss", url: "https://www.rand.org/pubs/new.xml", name: "RAND Research", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
+  { kind: "rss", url: "https://www.rand.org/pubs/commentary.xml", name: "RAND Commentary", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
+  { kind: "rss", url: "https://www.lowyinstitute.org/feed", name: "Lowy Institute", category: REPORT_CATEGORY, countAsReport: true, country_code: "AU" },
+  { kind: "rss", url: "https://www.scmp.com/rss/91/feed", name: "SCMP Insight & Opinion", category: REPORT_CATEGORY, countAsReport: false, country_code: "RP" },
+  { kind: "rss", url: "https://www.nbr.org/feed/", name: "NBR", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
 ];
 
 export function getConfigByCountryCode(code: string): CountryNewsConfig | undefined {

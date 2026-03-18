@@ -10,6 +10,7 @@ import {
 import type { NewsRow } from "@/types/news";
 import { formatRelativeTime } from "@/utils/formatDate";
 import { getCountryDisplayLabel } from "@/utils/countryNames";
+import { stripMarkdownFromSummary } from "@/utils/stripMarkdown";
 import { useTheme } from "@/contexts/ThemeContext";
 
 interface NewsCardProps {
@@ -64,7 +65,7 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
         {item.title}
       </Text>
       <Text className={`text-sm leading-relaxed ${summaryCls}`} numberOfLines={3}>
-        {item.summary_tr}
+        {stripMarkdownFromSummary(item.summary_tr)}
       </Text>
     </TouchableOpacity>
   );
