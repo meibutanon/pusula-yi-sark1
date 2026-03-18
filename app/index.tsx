@@ -21,7 +21,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNews } from "@/hooks/useNews";
 import { useTheme } from "@/contexts/ThemeContext";
 import { NewsCard } from "@/components/NewsCard";
-import { getAllCountryCodes } from "@/config/newsSources";
+import { getAllCountryCodes, getReportCountryCodes } from "@/config/newsSources";
 import { getCountryDisplayLabel } from "@/utils/countryNames";
 import { stripMarkdownFromSummary } from "@/utils/stripMarkdown";
 import { getLocalTimeZone } from "@/utils/formatDate";
@@ -125,9 +125,14 @@ export default function HomeScreen() {
     isRefetching,
   } = useNews(reportsOnly, countryFilter);
 
+  const reportCountries = useMemo(() => getReportCountryCodes(), []);
+  const effectiveCountryForFilter =
+    reportsOnly && selectedCountry !== ALL_COUNTRIES && !reportCountries.includes(selectedCountry)
+      ? ALL_COUNTRIES
+      : selectedCountry;
   const filteredNews = useMemo(
-    () => filterNews(news, searchQuery, selectedCountry),
-    [news, searchQuery, selectedCountry]
+    () => filterNews(news, searchQuery, effectiveCountryForFilter),
+    [news, searchQuery, effectiveCountryForFilter]
   );
 
   /* Her iki sekmede de aynı ülke butonları (Tümü + JP, KR, AU vb.). Raporlar sekmesinde ekstra "Stratejik Raporlar" pill gösterme. */

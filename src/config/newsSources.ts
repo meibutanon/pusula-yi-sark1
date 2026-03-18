@@ -182,6 +182,12 @@ export const reportSources: ReportSourceItem[] = [
   { kind: "rss", url: "https://www.nbr.org/feed/", name: "NBR", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
 ];
 
+/** Rapor kaynaklarında kullanılan ülke kodları (RP, AU). Sadece bunlar için raporlar sekmesinde country filtresi uygulanır. */
+export function getReportCountryCodes(): string[] {
+  const codes = [...new Set(reportSources.map((s) => s.country_code))];
+  return codes;
+}
+
 export function getConfigByCountryCode(code: string): CountryNewsConfig | undefined {
   return ASIA_PACIFIC_NEWS_CONFIG.find(
     (c) => c.country_code.toUpperCase() === code.toUpperCase()

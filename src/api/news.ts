@@ -4,6 +4,7 @@
  */
 
 import { getSupabase } from "@/lib/supabase";
+import { getReportCountryCodes } from "@/config/newsSources";
 import type { NewsRow } from "@/types/news";
 
 const NEWS_TABLE = "news";
@@ -25,7 +26,10 @@ export async function fetchNewsFromSupabase(
   if (reportsOnly === true) {
     q = q.eq("is_report", true);
     if (countryCode && countryCode !== "All") {
-      q = q.eq("country_code", countryCode);
+      const reportCountries = getReportCountryCodes();
+      if (reportCountries.includes(countryCode)) {
+        q = q.eq("country_code", countryCode);
+      }
     }
   } else {
     q = q.or("is_report.eq.false,is_report.is.null");
