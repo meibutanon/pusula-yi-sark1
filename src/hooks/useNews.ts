@@ -3,15 +3,21 @@ import { fetchNewsFromSupabase } from "@/api/news";
 
 const NEWS_QUERY_KEY = ["news"] as const;
 const REPORTS_QUERY_KEY = ["news", "reports"] as const;
+const ALL_COUNTRIES_VALUE = "All";
 
 /**
- * @param reportsOnly true ise sadece Stratejik Raporlar (is_report === true) listelenir.
- * @param countryCode Ülke filtresi (örn. "JP", "AU"); "All" veya boş ise tümü.
+ * @param reportsOnly true = Stratejik Raporlar (is_report === true), false = haberler.
+ * @param selectedCountry Seçili ülke kodu (örn. "JP", "AU"); "All" veya boş ise tümü. Sorgu ve cache key buna göre değişir.
  */
-export function useNews(reportsOnly?: boolean, countryCode?: string) {
+export function useNews(reportsOnly?: boolean, selectedCountry?: string) {
+  const countryParam =
+    selectedCountry === ALL_COUNTRIES_VALUE || !selectedCountry ? undefined : selectedCountry;
+  const queryKey = reportsOnly
+    ? [...REPORTS_QUERY_KEY, countryParam ?? "all"]
+    : [...NEWS_QUERY_KEY, countryParam ?? "all"];
   return useQuery({
-    queryKey: reportsOnly ? [...REPORTS_QUERY_KEY, countryCode ?? "all"] : [...NEWS_QUERY_KEY, countryCode ?? "all"],
-    queryFn: () => fetchNewsFromSupabase(reportsOnly, countryCode),
+    queryKey,
+    queryFn: () => fetchNewsFromSupabase(reportsOnly, countryParam),
     staleTime: 0,
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
