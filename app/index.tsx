@@ -114,7 +114,6 @@ export default function HomeScreen() {
       })
     : "--";
 
-  const reportsOnly = activeTab === "raporlar";
   const {
     data: news = [],
     isLoading,
@@ -122,7 +121,7 @@ export default function HomeScreen() {
     error,
     refetch,
     isRefetching,
-  } = useNews(reportsOnly, selectedCountry);
+  } = useNews(activeTab, selectedCountry);
 
   const filteredNews = useMemo(
     () => filterNews(news, searchQuery, selectedCountry),

@@ -10,6 +10,7 @@ import {
 import type { NewsRow } from "@/types/news";
 import { formatRelativeTime } from "@/utils/formatDate";
 import { getCountryDisplayLabel } from "@/utils/countryNames";
+import { getCountryFlag } from "@/utils/countryFlag";
 import { stripMarkdownFromSummary } from "@/utils/stripMarkdown";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -40,6 +41,8 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
     if (onPress) onPress(item);
     else openLinkSafe();
   };
+  const isReport = item.is_report === true;
+  const countryFlag = item.country_code.toUpperCase() === "RP" ? "🏳️" : getCountryFlag(item.country_code);
 
   return (
     <TouchableOpacity
@@ -50,9 +53,20 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
       className={`rounded-xl mx-4 mb-3 p-5 shadow-sm border ${cardBg} ${borderCls}`}
     >
       <View className="flex-row items-center mb-3 gap-1.5 flex-wrap">
-        <Text className={`text-sm font-semibold tracking-wide leading-relaxed ${metaCls}`}>
-          {getCountryDisplayLabel(item.country_code)}
-        </Text>
+        {isReport ? (
+          <View className="flex-row items-center gap-1.5">
+            <Text className={`text-sm font-semibold tracking-wide leading-relaxed ${metaCls}`}>
+              {countryFlag}
+            </Text>
+            <Text className={`text-sm font-semibold tracking-wide leading-relaxed ${metaCls}`}>
+              Stratejik Analiz
+            </Text>
+          </View>
+        ) : (
+          <Text className={`text-sm font-semibold tracking-wide leading-relaxed ${metaCls}`}>
+            {getCountryDisplayLabel(item.country_code)}
+          </Text>
+        )}
         <Text className={`text-xs ${metaCls} mx-1`}>·</Text>
         <Text className={`text-xs leading-relaxed ${metaCls}`}>
           {formatRelativeTime(item.created_at)}

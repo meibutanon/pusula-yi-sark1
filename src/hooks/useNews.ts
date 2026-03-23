@@ -6,10 +6,11 @@ const REPORTS_QUERY_KEY = ["news", "reports"] as const;
 const ALL_COUNTRIES_VALUE = "All";
 
 /**
- * @param reportsOnly true = Stratejik Raporlar (is_report === true), false = haberler.
- * @param selectedCountry Seçili ülke kodu (örn. "JP", "AU"); "All" veya boş ise tümü. Sorgu ve cache key buna göre değişir.
+ * @param activeTab aktif sekme (haberler | raporlar).
+ * @param selectedCountry Seçili ülke kodu (örn. "JP", "AU"); "All" veya boş ise tümü.
  */
-export function useNews(reportsOnly?: boolean, selectedCountry?: string) {
+export function useNews(activeTab: "haberler" | "raporlar", selectedCountry?: string) {
+  const reportsOnly = activeTab === "raporlar";
   const countryParam =
     selectedCountry === ALL_COUNTRIES_VALUE || !selectedCountry ? undefined : selectedCountry;
   const queryKey = reportsOnly
