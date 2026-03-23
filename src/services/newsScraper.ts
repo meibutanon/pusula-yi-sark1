@@ -22,6 +22,7 @@ const NEWS_TABLE = "news";
 const BATCH_SIZE = 80;
 /** Ülke başına en fazla kaç yeni haber çevrilip kaydedilir (süre ve API kotası için). */
 const MAX_NEW_ITEMS_PER_COUNTRY = 25;
+const OPENAI_MODEL = "gpt-4o-mini";
 
 /**
  * Veritabanında zaten bulunan source_url'leri döndürür.
@@ -132,6 +133,76 @@ async function toNewsItem(
   };
 }
 
+type AITagResult = {
+  is_asia_pacific: boolean;
+  country_code: string;
+};
+
+/**
+ * Haberin gerçek odağını AI ile etiketler.
+ * Asya-Pasifik dışı haberlerde is_asia_pacific=false döner ve kayıt atlanır.
+ */
+async function classifyNewsWithAI(
+  raw: RawNewsItem,
+  fallbackCountryCode: string
+): Promise<AITagResult> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    // OpenAI anahtarı yoksa mevcut davranışı bozmayalım.
+    return { is_asia_pacific: true, country_code: fallbackCountryCode };
+  }
+
+  const systemPrompt =
+    "Sen Asya-Pasifik editörsün. Haber başlığı+özeti okuyup haberin asıl odağını tek ülke kodu ile etiketle. " +
+    "Sadece JSON döndür: {\"is_asia_pacific\": boolean, \"country_code\": \"CN|JP|KR|KP|TW|TH|VN|ID|MY|SG|PH|IN|AU|NZ|RP\"}. " +
+    "Birden fazla ülke veya bölgesel konuysa country_code='RP'. Asya-Pasifik dışıysa is_asia_pacific=false ve country_code='RP'.";
+  const userPrompt = `Title: ${raw.title}\nSummary: ${raw.summary}`;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0,
+      response_format: { type: "json_object" },
+      max_tokens: 120,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenAI classify failed: ${res.status} ${err}`);
+  }
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) return { is_asia_pacific: true, country_code: fallbackCountryCode };
+
+  try {
+    const parsed = JSON.parse(content) as Partial<AITagResult>;
+    const isAP = Boolean(parsed.is_asia_pacific);
+    const code = String(parsed.country_code ?? fallbackCountryCode)
+      .toUpperCase()
+      .slice(0, 2);
+    const allowed = new Set([
+      "CN", "JP", "KR", "KP", "TW", "TH", "VN", "ID", "MY", "SG", "PH", "IN", "AU", "NZ", "RP",
+    ]);
+    return {
+      is_asia_pacific: isAP,
+      country_code: allowed.has(code) ? code : fallbackCountryCode,
+    };
+  } catch {
+    return { is_asia_pacific: true, country_code: fallbackCountryCode };
+  }
+}
+
 /**
  * Belirli bir ülkenin tüm kaynaklarından haberleri çeker, Türkçe'ye çevirir ve döndürür.
  */
@@ -191,7 +262,12 @@ export async function scrapeFromConfig(
   const results: NewsItem[] = [];
   for (const raw of toProcess) {
     try {
-      results.push(await toNewsItem(raw, config.country_code));
+      const tag = await classifyNewsWithAI(raw, config.country_code);
+      if (!tag.is_asia_pacific) {
+        console.log(`[newsScraper] Skip non-AP: ${raw.link}`);
+        continue;
+      }
+      results.push(await toNewsItem(raw, tag.country_code));
     } catch (err) {
       console.warn("[newsScraper] Translate failed for:", raw.link, err);
     }
@@ -243,39 +319,6 @@ const MAX_REPORT_ITEMS_PER_SOURCE = 15;
 /** Kaynak bilgisi ile etiketlenmiş ham rapor öğesi (sadece countAsReport kaynaklardan gelenler rapor sayılır). */
 type RawWithSource = { raw: RawNewsItem; source: (typeof reportSources)[number] };
 
-/** Rapor başlık/özetinden ülke kodu tespiti için anahtar kelimeler. */
-const REPORT_COUNTRY_KEYWORDS: Record<string, string[]> = {
-  CN: ["china", "chinese", "beijing", "prc"],
-  JP: ["japan", "japanese", "tokyo"],
-  KR: ["south korea", "korean", "seoul", "rok"],
-  TH: ["thailand", "thai", "bangkok"],
-  TW: ["taiwan", "taipei", "roc taiwan"],
-  IN: ["india", "indian", "new delhi"],
-  SG: ["singapore", "singaporean"],
-  ID: ["indonesia", "indonesian", "jakarta"],
-  VN: ["vietnam", "vietnamese", "hanoi"],
-  MY: ["malaysia", "malaysian", "kuala lumpur"],
-  PH: ["philippines", "philippine", "manila"],
-  AU: ["australia", "australian", "canberra"],
-  NZ: ["new zealand", "wellington", "kiwi"],
-};
-
-function inferReportCountryCode(raw: RawNewsItem, fallbackCountryCode: string): string {
-  const text = `${raw.title} ${raw.summary}`.toLowerCase();
-  const matchedCodes = Object.entries(REPORT_COUNTRY_KEYWORDS)
-    .filter(([, keywords]) => keywords.some((k) => text.includes(k)))
-    .map(([code]) => code);
-
-  if (matchedCodes.length === 1) {
-    return matchedCodes[0];
-  }
-  if (matchedCodes.length > 1) {
-    // Birden fazla ülke eşleştiyse genel/bölgesel rapor kabul et.
-    return REPORT_COUNTRY_CODE;
-  }
-  return fallbackCountryCode || REPORT_COUNTRY_CODE;
-}
-
 /**
  * Stratejik rapor kaynaklarından (reportSources) RSS çeker. Sadece countAsReport: true olan kaynaklardan gelenler is_report: true ile kaydedilir; The Diplomat, SCMP vb. is_report: false.
  */
@@ -314,9 +357,12 @@ export async function scrapeReports(): Promise<NewsItem[]> {
   for (const { raw, source } of toProcess) {
     try {
       const baseCountryCode = source.country_code ?? REPORT_COUNTRY_CODE;
-      const countryCode = source.countAsReport
-        ? inferReportCountryCode(raw, baseCountryCode)
-        : baseCountryCode;
+      const tag = await classifyNewsWithAI(raw, baseCountryCode);
+      if (!tag.is_asia_pacific) {
+        console.log(`[newsScraper] Skip non-AP report/news: ${raw.link}`);
+        continue;
+      }
+      const countryCode = tag.country_code;
       const item = await toNewsItem(raw, countryCode);
       item.is_report = source.countAsReport;
       results.push(item);
