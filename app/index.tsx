@@ -128,6 +128,18 @@ export default function HomeScreen() {
     [news, searchQuery, selectedCountry]
   );
 
+  const relatedNews = useMemo(() => {
+    if (!selectedNewsItem) return [];
+    return news
+      .filter(
+        (item) =>
+          item.id !== selectedNewsItem.id &&
+          item.country_code === selectedNewsItem.country_code &&
+          (item.is_report ?? false) === (selectedNewsItem.is_report ?? false)
+      )
+      .slice(0, 3);
+  }, [news, selectedNewsItem]);
+
   useEffect(() => {
     refetch();
   }, [activeTab, selectedCountry, refetch]);
@@ -507,6 +519,36 @@ export default function HomeScreen() {
                     Haberin Kaynağına Git
                   </Text>
                 </TouchableOpacity>
+
+                {relatedNews.length > 0 ? (
+                  <View className="mt-5 pt-4 border-t border-slate-300/40 dark:border-slate-600/60">
+                    <Text className={`text-sm font-semibold mb-3 ${isDarkMode ? "text-slate-200" : "text-slate-700"}`}>
+                      🔗 Buna da Göz Atabilirsiniz
+                    </Text>
+                    <View className="gap-2">
+                      {relatedNews.map((item) => (
+                        <TouchableOpacity
+                          key={item.id}
+                          onPress={() => setSelectedNewsItem(item)}
+                          className={`rounded-lg px-3 py-2 ${
+                            isDarkMode ? "bg-slate-700/50" : "bg-slate-100"
+                          }`}
+                          accessibilityRole="button"
+                          accessibilityLabel={`İlgili haber: ${item.title}`}
+                        >
+                          <Text
+                            numberOfLines={2}
+                            className={`text-sm leading-snug ${
+                              isDarkMode ? "text-slate-100" : "text-slate-800"
+                            }`}
+                          >
+                            {item.title}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
               </View>
             </TouchableOpacity>
           </TouchableOpacity>
