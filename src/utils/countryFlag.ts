@@ -17,7 +17,7 @@ const FLAG_AND_NAME: Record<string, string> = {
   MY: "🇲🇾 Malezya",
   PH: "🇵🇭 Filipinler",
   TW: "🇹🇼 Tayvan",
-  RP: "🏳️ Stratejik Raporlar",
+  RP: "🌐 Stratejik Raporlar",
 };
 
 /**
@@ -25,7 +25,7 @@ const FLAG_AND_NAME: Record<string, string> = {
  */
 export function getCountryFlagAndNameTr(countryCode: string): string {
   const key = String(countryCode ?? "").toUpperCase().trim().slice(0, 2);
-  return FLAG_AND_NAME[key] ?? "🏳 Ülke";
+  return FLAG_AND_NAME[key] ?? "🌐 Bölgesel";
 }
 
 /** @deprecated UI için getCountryFlagAndNameTr kullanın */

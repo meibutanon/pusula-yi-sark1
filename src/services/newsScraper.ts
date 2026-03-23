@@ -243,6 +243,39 @@ const MAX_REPORT_ITEMS_PER_SOURCE = 15;
 /** Kaynak bilgisi ile etiketlenmiş ham rapor öğesi (sadece countAsReport kaynaklardan gelenler rapor sayılır). */
 type RawWithSource = { raw: RawNewsItem; source: (typeof reportSources)[number] };
 
+/** Rapor başlık/özetinden ülke kodu tespiti için anahtar kelimeler. */
+const REPORT_COUNTRY_KEYWORDS: Record<string, string[]> = {
+  CN: ["china", "chinese", "beijing", "prc"],
+  JP: ["japan", "japanese", "tokyo"],
+  KR: ["south korea", "korean", "seoul", "rok"],
+  TH: ["thailand", "thai", "bangkok"],
+  TW: ["taiwan", "taipei", "roc taiwan"],
+  IN: ["india", "indian", "new delhi"],
+  SG: ["singapore", "singaporean"],
+  ID: ["indonesia", "indonesian", "jakarta"],
+  VN: ["vietnam", "vietnamese", "hanoi"],
+  MY: ["malaysia", "malaysian", "kuala lumpur"],
+  PH: ["philippines", "philippine", "manila"],
+  AU: ["australia", "australian", "canberra"],
+  NZ: ["new zealand", "wellington", "kiwi"],
+};
+
+function inferReportCountryCode(raw: RawNewsItem, fallbackCountryCode: string): string {
+  const text = `${raw.title} ${raw.summary}`.toLowerCase();
+  const matchedCodes = Object.entries(REPORT_COUNTRY_KEYWORDS)
+    .filter(([, keywords]) => keywords.some((k) => text.includes(k)))
+    .map(([code]) => code);
+
+  if (matchedCodes.length === 1) {
+    return matchedCodes[0];
+  }
+  if (matchedCodes.length > 1) {
+    // Birden fazla ülke eşleştiyse genel/bölgesel rapor kabul et.
+    return REPORT_COUNTRY_CODE;
+  }
+  return fallbackCountryCode || REPORT_COUNTRY_CODE;
+}
+
 /**
  * Stratejik rapor kaynaklarından (reportSources) RSS çeker. Sadece countAsReport: true olan kaynaklardan gelenler is_report: true ile kaydedilir; The Diplomat, SCMP vb. is_report: false.
  */
@@ -280,7 +313,10 @@ export async function scrapeReports(): Promise<NewsItem[]> {
   const results: NewsItem[] = [];
   for (const { raw, source } of toProcess) {
     try {
-      const countryCode = source.country_code ?? REPORT_COUNTRY_CODE;
+      const baseCountryCode = source.country_code ?? REPORT_COUNTRY_CODE;
+      const countryCode = source.countAsReport
+        ? inferReportCountryCode(raw, baseCountryCode)
+        : baseCountryCode;
       const item = await toNewsItem(raw, countryCode);
       item.is_report = source.countAsReport;
       results.push(item);

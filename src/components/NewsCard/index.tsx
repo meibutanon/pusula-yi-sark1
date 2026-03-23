@@ -42,7 +42,7 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
     else openLinkSafe();
   };
   const isReport = item.is_report === true;
-  const countryFlag = item.country_code.toUpperCase() === "RP" ? "🏳️" : getCountryFlag(item.country_code);
+  const countryFlag = item.country_code.toUpperCase() === "RP" ? "🌐" : getCountryFlag(item.country_code);
 
   return (
     <TouchableOpacity
