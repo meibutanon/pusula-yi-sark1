@@ -181,6 +181,11 @@ export const reportSources: ReportSourceItem[] = [
   { kind: "rss", url: "https://www.scmp.com/rss/91/feed", name: "SCMP Insight & Opinion", category: REPORT_CATEGORY, countAsReport: false, country_code: "RP" },
   { kind: "rss", url: "https://www.nbr.org/feed/", name: "NBR", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
   { kind: "html", url: "https://www.iprc.tr/tr/yayinlar", name: "IPRC", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
+  { kind: "html", url: "https://tasam.org/tr-TR/Blog", name: "TASAM", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
+  { kind: "html", url: "https://www.ankasam.org/kategori/analizler/", name: "ANKASAM", category: REPORT_CATEGORY, countAsReport: true, country_code: "RP" },
+  { kind: "html", url: "http://www.ciis.org.cn/english/", name: "CIIS", category: REPORT_CATEGORY, countAsReport: true, country_code: "CN" },
+  { kind: "html", url: "https://www.jiia.or.jp/en/", name: "JIIA", category: REPORT_CATEGORY, countAsReport: true, country_code: "JP" },
+  { kind: "html", url: "https://en.asaninst.org/contents/", name: "Asan Institute", category: REPORT_CATEGORY, countAsReport: true, country_code: "KR" },
 ];
 
 /** Rapor görünümü için tüm ülke kodlarını döndürür (scraper raporlara başlık/içerikten ülke atar). */

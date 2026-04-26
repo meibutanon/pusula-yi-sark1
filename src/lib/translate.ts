@@ -12,10 +12,10 @@ const OPENAI_SYSTEM_TRANSLATE =
   "Sen Asya-Pasifik alanında uzmanlaşmış, uluslararası bir haber ajansında (Reuters, AA vb.) çalışan kıdemli bir Dış Haberler Editörüsün. Sana verilen İngilizce haber metnini profesyonel, tarafsız ve diplomatik bir gazetecilik diliyle Türkçeye çevireceksin. Birebir robotik çevirisi yapmaktan kaçın; diplomatik ve askeri terimleri doğru kullan (örneğin 'Foreign Minister' için 'Dışişleri Bakanı', 'Mainland' için 'Anakara' gibi). Sadece kusursuz çeviriyi yaz, hiçbir açıklama, tırnak işareti veya ek yorum ekleme.";
 
 const OPENAI_SYSTEM_SUMMARY =
-  "Sen profesyonel bir Asya-Pasifik bölgesi Genel Yayın Yönetmenisin. Sana gelen İngilizce başlık ve içerik ne kadar kısa olursa olsun, bunu harmanlayıp okuyucuya şu iki başlıktan oluşan, Markdown veya HTML formatında şık bir metin döndürmelisin:\n" +
-  "1. **Özet:** Haberin ne olduğunu anlatan akıcı ve doyurucu 2-3 cümle.\n" +
-  "2. **Bu Neden Önemli?:** Bu olayın bölgesel veya küresel etkisini anlatan vurucu 1-2 cümlelik analiz.\n" +
-  "Bu iki bölümü tek bir metin (string) olarak döndür. Yanıtında sadece bu iki bölümlü metni yaz; başka açıklama ekleme. DB'deki summary_tr alanına bu tam metin kaydedilecek.";
+  "Sen profesyonel bir Asya-Pasifik araştırma editörüsün. Gelen metin İngilizce/Çince/Japonca/Korece olabilir. " +
+  "Dili otomatik algıla, metni en profesyonel akademik Türkçe ile işle ve sadece şu formatta çıktı ver:\n" +
+  "Özet:\n- <madde 1>\n- <madde 2>\n- <madde 3>\n" +
+  "Yalnızca bu 3 maddelik 'Özet' metnini döndür; ek açıklama, markdown kod bloğu veya farklı başlık ekleme.";
 
 async function translateWithOpenAI(text: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;

@@ -361,6 +361,80 @@ async function fetchIprcAnalyses(listUrl: string): Promise<RawNewsItem[]> {
   return items;
 }
 
+function absoluteUrl(base: string, href: string): string {
+  if (href.startsWith("http")) return href;
+  try {
+    return new URL(href, base).toString();
+  } catch {
+    return href;
+  }
+}
+
+/**
+ * HTML sayfalarda analiz/yayın linklerini (RSS yoksa) çekmek için genel toplayıcı.
+ */
+async function fetchHtmlAnalysesByPatterns(
+  listUrl: string,
+  linkPathHints: string[]
+): Promise<RawNewsItem[]> {
+  const res = await fetch(listUrl, {
+    headers: {
+      "User-Agent":
+        "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
+    },
+  });
+  if (!res.ok) throw new Error(`HTML page fetch failed: ${res.status}`);
+  const html = await res.text();
+
+  const linkRegex = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  const links = new Map<string, string>();
+  let m: RegExpExecArray | null = null;
+  while ((m = linkRegex.exec(html)) !== null) {
+    const href = m[1];
+    const textRaw = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const abs = absoluteUrl(listUrl, href);
+    const lower = abs.toLowerCase();
+    const matchesHint = linkPathHints.some((h) => lower.includes(h));
+    if (!matchesHint) continue;
+    if (abs.includes("#") || abs.includes("?")) continue;
+    if (!textRaw || textRaw.length < 8) continue;
+    if (!links.has(abs)) links.set(abs, textRaw);
+    if (links.size >= 12) break;
+  }
+
+  return Array.from(links.entries())
+    .slice(0, 10)
+    .map(([link, title]) => ({
+      title,
+      summary: title,
+      link,
+      isoDate: new Date().toISOString(),
+    }));
+}
+
+async function fetchHtmlAnalyses(source: (typeof reportSources)[number]): Promise<RawNewsItem[]> {
+  const name = source.name.toLowerCase();
+  if (name.includes("iprc")) {
+    return fetchIprcAnalyses(source.url);
+  }
+  if (name.includes("tasam")) {
+    return fetchHtmlAnalysesByPatterns(source.url, ["/blog/", "/analiz", "/yayin"]);
+  }
+  if (name.includes("ankasam")) {
+    return fetchHtmlAnalysesByPatterns(source.url, ["/analiz", "/degerlendirme", "/yazi"]);
+  }
+  if (name.includes("ciis")) {
+    return fetchHtmlAnalysesByPatterns(source.url, ["/english/", "/opinion", "/research", "/article"]);
+  }
+  if (name.includes("jiia")) {
+    return fetchHtmlAnalysesByPatterns(source.url, ["/en/", "/research", "/column", "/analysis"]);
+  }
+  if (name.includes("asan")) {
+    return fetchHtmlAnalysesByPatterns(source.url, ["/contents/", "/analysis", "/issue-brief", "/report"]);
+  }
+  return fetchHtmlAnalysesByPatterns(source.url, ["/analysis", "/report", "/research", "/article"]);
+}
+
 /**
  * Stratejik rapor kaynaklarından (reportSources) RSS çeker. Sadece countAsReport: true olan kaynaklardan gelenler is_report: true ile kaydedilir; The Diplomat, SCMP vb. is_report: false.
  */
@@ -371,7 +445,7 @@ export async function scrapeReports(): Promise<NewsItem[]> {
       const items =
         source.kind === "rss"
           ? await fetchRssFeed(source.url)
-          : await fetchIprcAnalyses(source.url);
+          : await fetchHtmlAnalyses(source);
       items.forEach((raw) => allRawWithSource.push({ raw, source }));
     } catch (err) {
       console.warn(`[newsScraper] Report source failed ${source.name}:`, err);

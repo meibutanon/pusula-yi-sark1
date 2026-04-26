@@ -47,6 +47,10 @@ function parseSummarySections(summary: string | undefined): { executiveSummary: 
   return { executiveSummary: executiveSummary || secondPart, whyItMatters: secondPart };
 }
 
+function normalizeSummaryLabels(text: string | undefined): string {
+  return (text ?? "").replace(/Yönetici Özeti/gi, "Özet");
+}
+
 function filterNews(
   news: NewsRow[],
   searchQuery: string,
@@ -142,7 +146,7 @@ export default function HomeScreen() {
       .slice(0, 3);
   }, [news, selectedNewsItem]);
 
-  const normalizedSelectedSummary = selectedNewsItem?.summary_tr?.replace(/Yönetici Özeti/gi, "Özet");
+  const normalizedSelectedSummary = normalizeSummaryLabels(selectedNewsItem?.summary_tr);
 
   useEffect(() => {
     refetch();
