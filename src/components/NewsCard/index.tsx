@@ -43,6 +43,7 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
   };
   const isReport = item.is_report === true;
   const countryFlag = item.country_code.toUpperCase() === "RP" ? "🌐" : getCountryFlag(item.country_code);
+  const displaySummary = stripMarkdownFromSummary(item.summary_tr?.replace(/Yönetici Özeti/gi, "Özet"));
 
   return (
     <TouchableOpacity
@@ -79,7 +80,7 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
         {item.title}
       </Text>
       <Text className={`text-sm leading-relaxed ${summaryCls}`} numberOfLines={3}>
-        {stripMarkdownFromSummary(item.summary_tr)}
+        {displaySummary}
       </Text>
     </TouchableOpacity>
   );

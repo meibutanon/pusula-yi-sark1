@@ -320,14 +320,58 @@ const MAX_REPORT_ITEMS_PER_SOURCE = 15;
 type RawWithSource = { raw: RawNewsItem; source: (typeof reportSources)[number] };
 
 /**
+ * IPRC yayın sayfasından son analiz linklerini çeker (RSS yoksa fallback).
+ */
+async function fetchIprcAnalyses(listUrl: string): Promise<RawNewsItem[]> {
+  const res = await fetch(listUrl, {
+    headers: {
+      "User-Agent":
+        "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
+    },
+  });
+  if (!res.ok) throw new Error(`IPRC page fetch failed: ${res.status}`);
+  const html = await res.text();
+
+  // /tr/yayinlar/... linklerini çek
+  const regex = /href="([^"]*\/tr\/yayinlar\/[^"#?]+)"/gi;
+  const links = new Set<string>();
+  let m: RegExpExecArray | null = null;
+  while ((m = regex.exec(html)) !== null) {
+    const href = m[1];
+    const abs = href.startsWith("http") ? href : `https://www.iprc.tr${href.startsWith("/") ? "" : "/"}${href}`;
+    if (!abs.includes("/tr/yayinlar/")) continue;
+    links.add(abs);
+    if (links.size >= 12) break;
+  }
+
+  const items: RawNewsItem[] = [];
+  for (const link of Array.from(links).slice(0, 10)) {
+    // başlığı URL slug'ından üret; özeti AI sonradan üretecek
+    const slug = link.split("/").filter(Boolean).pop() ?? "iprc-analiz";
+    const title = slug
+      .replace(/[-_]+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    items.push({
+      title,
+      summary: "IPRC analiz yayını",
+      link,
+      isoDate: new Date().toISOString(),
+    });
+  }
+  return items;
+}
+
+/**
  * Stratejik rapor kaynaklarından (reportSources) RSS çeker. Sadece countAsReport: true olan kaynaklardan gelenler is_report: true ile kaydedilir; The Diplomat, SCMP vb. is_report: false.
  */
 export async function scrapeReports(): Promise<NewsItem[]> {
   const allRawWithSource: RawWithSource[] = [];
   for (const source of reportSources) {
-    if (source.kind !== "rss") continue;
     try {
-      const items = await fetchRssFeed(source.url);
+      const items =
+        source.kind === "rss"
+          ? await fetchRssFeed(source.url)
+          : await fetchIprcAnalyses(source.url);
       items.forEach((raw) => allRawWithSource.push({ raw, source }));
     } catch (err) {
       console.warn(`[newsScraper] Report source failed ${source.name}:`, err);

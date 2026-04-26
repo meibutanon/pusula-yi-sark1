@@ -31,14 +31,14 @@ const ALL_COUNTRIES = "All";
 
 /** summary_tr içinden "Yönetici Özeti" ve "Bu Neden Önemli?" bölümlerini ayırır (Markdown/şık gösterim için). */
 function parseSummarySections(summary: string | undefined): { executiveSummary: string; whyItMatters: string } | null {
-  const cleaned = stripMarkdownFromSummary(summary);
+  const cleaned = stripMarkdownFromSummary(summary?.replace(/Yönetici Özeti/gi, "Özet"));
   if (!cleaned) return null;
   const whyMarker = "Bu Neden Önemli?";
   const idx = cleaned.indexOf(whyMarker);
   if (idx === -1) return null;
   const firstPart = cleaned.slice(0, idx).trim();
   const secondPart = cleaned.slice(idx + whyMarker.length).replace(/^[:\s*]+/, "").trim();
-  const execMarker = "Yönetici Özeti";
+  const execMarker = "Özet";
   const execIdx = firstPart.indexOf(execMarker);
   const executiveSummary = execIdx >= 0
     ? firstPart.slice(execIdx + execMarker.length).replace(/^[:\s*]+/, "").trim()
@@ -83,6 +83,8 @@ export default function HomeScreen() {
   const [locationLabel, setLocationLabel] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [selectedNewsItem, setSelectedNewsItem] = useState<NewsRow | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const listRef = useRef<FlatList<NewsRow>>(null);
 
   const logoMaxWidth = Math.min(380, screenWidth - 40);
   const logoHeight = logoMaxWidth / LOGO_ASPECT;
@@ -139,6 +141,8 @@ export default function HomeScreen() {
       )
       .slice(0, 3);
   }, [news, selectedNewsItem]);
+
+  const normalizedSelectedSummary = selectedNewsItem?.summary_tr?.replace(/Yönetici Özeti/gi, "Özet");
 
   useEffect(() => {
     refetch();
@@ -468,7 +472,7 @@ export default function HomeScreen() {
                   contentContainerStyle={{ paddingBottom: 40 }}
                 >
                   {(() => {
-                    const sections = parseSummarySections(selectedNewsItem?.summary_tr);
+                    const sections = parseSummarySections(normalizedSelectedSummary);
                     const bodyCls = isDarkMode ? "text-gray-300" : "text-slate-600";
                     const headingCls = isDarkMode ? "text-slate-100" : "text-slate-800";
                     if (sections) {
@@ -476,7 +480,7 @@ export default function HomeScreen() {
                         <View className="gap-4">
                           <View>
                             <Text className={`text-sm font-bold uppercase tracking-wide mb-1.5 ${headingCls}`}>
-                              Yönetici Özeti
+                              Özet
                             </Text>
                             <Text className={`text-base leading-relaxed ${bodyCls}`}>
                               {sections.executiveSummary}
@@ -497,7 +501,7 @@ export default function HomeScreen() {
                     }
                     return (
                       <Text className={`text-base leading-relaxed ${bodyCls}`}>
-                        {stripMarkdownFromSummary(selectedNewsItem?.summary_tr)}
+                        {stripMarkdownFromSummary(normalizedSelectedSummary)}
                       </Text>
                     );
                   })()}
@@ -556,6 +560,7 @@ export default function HomeScreen() {
         </Modal>
 
         <FlatList
+          ref={listRef}
           data={filteredNews}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -564,6 +569,12 @@ export default function HomeScreen() {
           ListHeaderComponent={listHeaderComponent}
           contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+            if (y > 300 && !showScrollTop) setShowScrollTop(true);
+            if (y <= 300 && showScrollTop) setShowScrollTop(false);
+          }}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching && !isLoading}
@@ -597,6 +608,16 @@ export default function HomeScreen() {
             </View>
           }
         />
+        {showScrollTop ? (
+          <TouchableOpacity
+            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            className="absolute right-5 bottom-8 w-12 h-12 rounded-full items-center justify-center bg-slate-900/70 border border-amber-400/40"
+            accessibilityRole="button"
+            accessibilityLabel="Yukarı çık"
+          >
+            <Ionicons name="arrow-up" size={20} color="#fbbf24" />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </KeyboardAvoidingView>
   );
