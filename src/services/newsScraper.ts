@@ -5,6 +5,7 @@
  */
 
 import Parser from "rss-parser";
+import * as cheerio from "cheerio";
 import type { NewsItem, RawNewsItem } from "@/types/news";
 import { translateToTurkish, translateToTurkishSummary } from "@/lib/translate";
 import { getSupabase } from "@/lib/supabase";
@@ -107,8 +108,66 @@ async function fetchFromSource(
   if (source.kind === "rss") {
     return fetchRssFeed(source.url);
   }
+  if (source.kind === "html") {
+    return fetchHtmlNewsFromSource(source);
+  }
   // API kaynakları ileride eklenebilir (örn. NewsAPI, GNews)
   return [];
+}
+
+async function fetchHtmlNewsFromSource(source: NewsSourceItem): Promise<RawNewsItem[]> {
+  const res = await fetch(source.url, {
+    headers: {
+      "User-Agent":
+        "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
+    },
+  });
+  if (!res.ok) throw new Error(`HTML source fetch failed: ${res.status}`);
+  const html = await res.text();
+  const $ = cheerio.load(html);
+  const items: RawNewsItem[] = [];
+
+  const pushCandidate = (title: string, href: string) => {
+    const t = title.replace(/\s+/g, " ").trim();
+    if (!t || t.length < 8) return;
+    if (!href) return;
+    const abs = href.startsWith("http") ? href : new URL(href, source.url).toString();
+    if (items.some((i) => i.link === abs)) return;
+    items.push({
+      title: t,
+      summary: t,
+      link: abs,
+      isoDate: new Date().toISOString(),
+    });
+  };
+
+  if (source.name?.toLowerCase().includes("global times")) {
+    $("a[href*='/page/']").each((_idx: number, el: any) => {
+      if (items.length >= 10) return false;
+      pushCandidate($(el).text(), $(el).attr("href") ?? "");
+      return;
+    });
+  } else if (source.name?.toLowerCase().includes("yomiuri")) {
+    $("a[href*='/world/'], a[href*='/politics/'], a[href*='/japan-news/']").each((_idx: number, el: any) => {
+      if (items.length >= 10) return false;
+      pushCandidate($(el).text(), $(el).attr("href") ?? "");
+      return;
+    });
+  } else if (source.name?.toLowerCase().includes("chosun")) {
+    $("a[href*='/international/'], a[href*='/politics/'], a[href*='/economy/']").each((_idx: number, el: any) => {
+      if (items.length >= 10) return false;
+      pushCandidate($(el).text(), $(el).attr("href") ?? "");
+      return;
+    });
+  } else {
+    $("a[href*='/news/'], a[href*='/world/'], a[href*='/china/'], a[href*='/asia/']").each((_idx: number, el: any) => {
+      if (items.length >= 10) return false;
+      pushCandidate($(el).text(), $(el).attr("href") ?? "");
+      return;
+    });
+  }
+
+  return items.slice(0, 10);
 }
 
 /**
@@ -153,7 +212,8 @@ async function classifyNewsWithAI(
   }
 
   const systemPrompt =
-    "Sen Asya-Pasifik editörsün. Haber başlığı+özeti okuyup haberin asıl odağını tek ülke kodu ile etiketle. " +
+    "Sen Asya-Pasifik editörsün. Haber başlığı+özeti Çince (Mandarin), Japonca (Kanji/Kana), Korece (Hangul) veya İngilizce olabilir. " +
+    "Metni anlayıp haberin asıl odağını tek ülke kodu ile etiketle. " +
     "Sadece JSON döndür: {\"is_asia_pacific\": boolean, \"country_code\": \"CN|JP|KR|KP|TW|TH|VN|ID|MY|SG|PH|IN|AU|NZ|RP\"}. " +
     "Birden fazla ülke veya bölgesel konuysa country_code='RP'. Asya-Pasifik dışıysa is_asia_pacific=false ve country_code='RP'.";
   const userPrompt = `Title: ${raw.title}\nSummary: ${raw.summary}`;

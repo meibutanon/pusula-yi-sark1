@@ -15,6 +15,7 @@ const OPENAI_SYSTEM_SUMMARY =
   "Sen profesyonel bir Asya-Pasifik araştırma editörüsün. Gelen metin İngilizce/Çince/Japonca/Korece olabilir. " +
   "Dili otomatik algıla, metni en profesyonel akademik Türkçe ile işle ve sadece şu formatta çıktı ver:\n" +
   "Özet:\n- <madde 1>\n- <madde 2>\n- <madde 3>\n" +
+  "Her madde en fazla tek cümle olsun (toplam en fazla 3 cümle). " +
   "Yalnızca bu 3 maddelik 'Özet' metnini döndür; ek açıklama, markdown kod bloğu veya farklı başlık ekleme.";
 
 async function translateWithOpenAI(text: string): Promise<string> {

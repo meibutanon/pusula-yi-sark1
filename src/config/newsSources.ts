@@ -4,7 +4,7 @@
  * Son Dakika, Siyaset, Ekonomi, Yaşam, Teknoloji ve Bilim, Eğitim, Spor, Tarih ve Arşiv, Sanat.
  */
 
-export type NewsSourceKind = "rss" | "api";
+export type NewsSourceKind = "rss" | "api" | "html";
 
 /** Taranacak kategori başlıkları */
 export const SCAN_CATEGORIES = [
@@ -53,16 +53,16 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
     country_code: "JP",
     country_name_en: "Japan",
     sources: [
-      { kind: "rss", url: "https://www.nhk.or.jp/rss/news/cat0.xml", name: "NHK Ana Haberler", category: C.SonDakika },
-      { kind: "rss", url: "https://japantoday.com/feed", name: "Japan Today", category: C.SonDakika },
+      { kind: "rss", url: "https://www3.nhk.or.jp/rss/news/cat0.xml", name: "NHK News", category: C.SonDakika },
+      { kind: "html", url: "https://www.yomiuri.co.jp/", name: "Yomiuri Shimbun", category: C.Siyaset },
     ],
   },
   {
     country_code: "KR",
     country_name_en: "South Korea",
     sources: [
-      { kind: "rss", url: "https://en.yna.co.kr/RSS/news.xml", name: "Yonhap (Devlet Ajansı)", category: C.SonDakika },
-      { kind: "rss", url: "https://www.koreaherald.com/rss/020100000000.xml", name: "Korea Herald", category: C.Siyaset },
+      { kind: "rss", url: "https://en.yna.co.kr/RSS/news.xml", name: "Yonhap News Agency", category: C.SonDakika },
+      { kind: "html", url: "https://www.chosun.com/international/", name: "Chosun Ilbo", category: C.Siyaset },
     ],
   },
   {
@@ -77,9 +77,8 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
     country_code: "CN",
     country_name_en: "China",
     sources: [
-      { kind: "rss", url: "https://www.chinadaily.com.cn/rss/china_rss.xml", name: "China Daily", category: C.SonDakika },
-      { kind: "rss", url: "https://www.scmp.com/rss/2/feed", name: "SCMP China", category: C.Siyaset },
-      { kind: "rss", url: "https://hongkongfp.com/feed/", name: "HKFP", category: C.Siyaset },
+      { kind: "rss", url: "https://www.xinhuanet.com/english/rss/chinarss.xml", name: "Xinhua News", category: C.SonDakika },
+      { kind: "html", url: "https://www.globaltimes.cn/china", name: "Global Times", category: C.Siyaset },
     ],
   },
   {
@@ -87,7 +86,7 @@ export const ASIA_PACIFIC_NEWS_CONFIG: CountryNewsConfig[] = [
     country_name_en: "India",
     sources: [
       { kind: "rss", url: "https://timesofindia.indiatimes.com/rssfeeds/296589292.cms", name: "Times of India", category: C.SonDakika },
-      { kind: "rss", url: "https://www.thehindu.com/news/international/feeder/default.rss", name: "The Hindu (Bağımsız)", category: C.Siyaset },
+      { kind: "rss", url: "https://www.thehindu.com/news/national/feeder/default.rss", name: "The Hindu", category: C.Siyaset },
     ],
   },
   {
