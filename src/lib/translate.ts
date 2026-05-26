@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/fetchWithTimeout";
+
 /**
  * Başlık ve özet metinlerini Türkçe'ye çevirmek için GCP Translate veya OpenAI kullanır.
  * Ortam değişkenleri:
@@ -22,7 +24,7 @@ async function translateWithOpenAI(text: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -56,7 +58,7 @@ async function translateSummaryWithOpenAI(title: string, description: string): P
 
   const userContent = `Başlık: ${title}\n\nMetin/Özet: ${description}`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const res = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -88,7 +90,7 @@ async function translateWithGCP(text: string): Promise<string> {
   if (!apiKey) throw new Error("GOOGLE_TRANSLATE_API_KEY is not set");
 
   const url = `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(apiKey)}`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ q: [text], target: TARGET_LANG, format: "text" }),

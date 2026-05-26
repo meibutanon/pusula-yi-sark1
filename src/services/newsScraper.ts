@@ -10,6 +10,11 @@ import type { NewsItem, RawNewsItem } from "@/types/news";
 import { translateToTurkish, translateToTurkishSummary } from "@/lib/translate";
 import { getSupabase } from "@/lib/supabase";
 import {
+  DEFAULT_FETCH_HEADERS,
+  FETCH_TIMEOUT_MS,
+  fetchWithTimeout,
+} from "@/lib/fetchWithTimeout";
+import {
   ASIA_PACIFIC_NEWS_CONFIG,
   getConfigByCountryCode,
   REPORT_COUNTRY_CODE,
@@ -24,6 +29,10 @@ const BATCH_SIZE = 80;
 /** Ülke başına en fazla kaç yeni haber çevrilip kaydedilir (süre ve API kotası için). */
 const MAX_NEW_ITEMS_PER_COUNTRY = 25;
 const OPENAI_MODEL = "gpt-4o-mini";
+
+function sourceLabel(source: { name?: string; url: string }): string {
+  return source.name ?? source.url;
+}
 
 /**
  * Veritabanında zaten bulunan source_url'leri döndürür.
@@ -72,11 +81,8 @@ export async function saveNewsToSupabase(items: NewsItem[]): Promise<number> {
 }
 
 const rssParser = new Parser({
-  timeout: 15000,
-  headers: {
-    "User-Agent":
-      "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
-  },
+  timeout: FETCH_TIMEOUT_MS,
+  headers: DEFAULT_FETCH_HEADERS,
 });
 
 /**
@@ -116,12 +122,7 @@ async function fetchFromSource(
 }
 
 async function fetchHtmlNewsFromSource(source: NewsSourceItem): Promise<RawNewsItem[]> {
-  const res = await fetch(source.url, {
-    headers: {
-      "User-Agent":
-        "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
-    },
-  });
+  const res = await fetchWithTimeout(source.url);
   if (!res.ok) throw new Error(`HTML source fetch failed: ${res.status}`);
   const html = await res.text();
   const $ = cheerio.load(html);
@@ -218,7 +219,8 @@ async function classifyNewsWithAI(
     "Birden fazla ülke veya bölgesel konuysa country_code='RP'. Asya-Pasifik dışıysa is_asia_pacific=false ve country_code='RP'.";
   const userPrompt = `Title: ${raw.title}\nSummary: ${raw.summary}`;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  try {
+  const res = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -261,6 +263,10 @@ async function classifyNewsWithAI(
   } catch {
     return { is_asia_pacific: true, country_code: fallbackCountryCode };
   }
+  } catch (error) {
+    console.error("[newsScraper] AI sınıflandırma hatası, yedek kod kullanılıyor:", raw.link, error);
+    return { is_asia_pacific: true, country_code: fallbackCountryCode };
+  }
 }
 
 /**
@@ -285,11 +291,9 @@ export async function scrapeFromConfig(
     try {
       const items = await fetchFromSource(source, config.country_code);
       allRaw.push(...items);
-    } catch (err) {
-      console.warn(
-        `[newsScraper] Failed to fetch ${source.name ?? source.url}:`,
-        err
-      );
+    } catch (error) {
+      console.error("Şu kaynakta hata oluştu:", sourceLabel(source), error);
+      continue;
     }
   }
   // Tarihe göre yeniden eskiye, aynı link tekrarlarını kaldır
@@ -307,7 +311,16 @@ export async function scrapeFromConfig(
 
   // Veritabanında zaten varsa çeviri yapma ve tekrar kaydetme (API tasarrufu + temiz DB)
   const urls = unique.map((i) => i.link);
-  const existingUrls = await getExistingSourceUrls(urls);
+  let existingUrls = new Set<string>();
+  try {
+    existingUrls = await getExistingSourceUrls(urls);
+  } catch (error) {
+    console.error(
+      `[newsScraper] Mevcut URL kontrolü başarısız (${config.country_code}):`,
+      error
+    );
+    return [];
+  }
   const newRaw = unique.filter((i) => !existingUrls.has(i.link));
   const toProcess = newRaw.slice(0, MAX_NEW_ITEMS_PER_COUNTRY);
   console.log(
@@ -328,14 +341,26 @@ export async function scrapeFromConfig(
         continue;
       }
       results.push(await toNewsItem(raw, tag.country_code));
-    } catch (err) {
-      console.warn("[newsScraper] Translate failed for:", raw.link, err);
+    } catch (error) {
+      console.error(
+        "[newsScraper] Çeviri/AI işleme hatası:",
+        raw.link,
+        error
+      );
+      continue;
     }
   }
 
   if (results.length > 0) {
-    const saved = await saveNewsToSupabase(results);
-    if (saved === 0) console.warn("[newsScraper] Kayıt yapıldı ama insert sonucu 0 döndü.");
+    try {
+      const saved = await saveNewsToSupabase(results);
+      if (saved === 0) console.warn("[newsScraper] Kayıt yapıldı ama insert sonucu 0 döndü.");
+    } catch (error) {
+      console.error(
+        `[newsScraper] Supabase kayıt hatası (${config.country_code}):`,
+        error
+      );
+    }
   }
   return results;
 }
@@ -358,8 +383,12 @@ export async function scrapeAll(
     try {
       const items = await scrapeFromConfig(config);
       all.push(...items);
-    } catch (err) {
-      console.warn(`[newsScraper] Failed for ${config.country_code}:`, err);
+    } catch (error) {
+      console.error(
+        `[newsScraper] Ülke işleme hatası (${config.country_code}):`,
+        error
+      );
+      continue;
     }
   }
   all.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
@@ -383,12 +412,7 @@ type RawWithSource = { raw: RawNewsItem; source: (typeof reportSources)[number] 
  * IPRC yayın sayfasından son analiz linklerini çeker (RSS yoksa fallback).
  */
 async function fetchIprcAnalyses(listUrl: string): Promise<RawNewsItem[]> {
-  const res = await fetch(listUrl, {
-    headers: {
-      "User-Agent":
-        "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
-    },
-  });
+  const res = await fetchWithTimeout(listUrl);
   if (!res.ok) throw new Error(`IPRC page fetch failed: ${res.status}`);
   const html = await res.text();
 
@@ -437,12 +461,7 @@ async function fetchHtmlAnalysesByPatterns(
   listUrl: string,
   linkPathHints: string[]
 ): Promise<RawNewsItem[]> {
-  const res = await fetch(listUrl, {
-    headers: {
-      "User-Agent":
-        "AsyaPasifikHaber/1.0 (News aggregator; +https://github.com/asya-pasifik-haber)",
-    },
-  });
+  const res = await fetchWithTimeout(listUrl);
   if (!res.ok) throw new Error(`HTML page fetch failed: ${res.status}`);
   const html = await res.text();
 
@@ -507,8 +526,9 @@ export async function scrapeReports(): Promise<NewsItem[]> {
           ? await fetchRssFeed(source.url)
           : await fetchHtmlAnalyses(source);
       items.forEach((raw) => allRawWithSource.push({ raw, source }));
-    } catch (err) {
-      console.warn(`[newsScraper] Report source failed ${source.name}:`, err);
+    } catch (error) {
+      console.error("Şu kaynakta hata oluştu:", sourceLabel(source), error);
+      continue;
     }
   }
   const seen = new Set<string>();
@@ -524,7 +544,13 @@ export async function scrapeReports(): Promise<NewsItem[]> {
   });
 
   const urls = unique.map(({ raw }) => raw.link);
-  const existingUrls = await getExistingSourceUrls(urls);
+  let existingUrls = new Set<string>();
+  try {
+    existingUrls = await getExistingSourceUrls(urls);
+  } catch (error) {
+    console.error("[newsScraper] Rapor URL kontrolü başarısız:", error);
+    return [];
+  }
   const newItems = unique.filter(({ raw }) => !existingUrls.has(raw.link));
   const toProcess = newItems.slice(0, MAX_REPORT_ITEMS_PER_SOURCE * reportSources.length);
   console.log(
@@ -544,16 +570,28 @@ export async function scrapeReports(): Promise<NewsItem[]> {
       const item = await toNewsItem(raw, countryCode);
       item.is_report = source.countAsReport;
       results.push(item);
-    } catch (err) {
-      console.warn("[newsScraper] Report translate failed for:", raw.link, err);
+    } catch (error) {
+      console.error(
+        "[newsScraper] Rapor çeviri/AI hatası:",
+        sourceLabel(source),
+        raw.link,
+        error
+      );
+      continue;
     }
   }
 
   if (results.length > 0) {
-    const saved = await saveNewsToSupabase(results);
-    if (saved === 0) console.warn("[newsScraper] Rapor kayıt yapıldı ama insert sonucu 0 döndü.");
-    const reportCount = results.filter((r) => r.is_report).length;
-    console.log(`[newsScraper] Toplam ${saved} yeni kayıt (${reportCount} rapor, ${saved - reportCount} haber olarak işlendi).`);
+    try {
+      const saved = await saveNewsToSupabase(results);
+      if (saved === 0) console.warn("[newsScraper] Rapor kayıt yapıldı ama insert sonucu 0 döndü.");
+      const reportCount = results.filter((r) => r.is_report).length;
+      console.log(
+        `[newsScraper] Toplam ${saved} yeni kayıt (${reportCount} rapor, ${saved - reportCount} haber olarak işlendi).`
+      );
+    } catch (error) {
+      console.error("[newsScraper] Rapor Supabase kayıt hatası:", error);
+    }
   }
   return results;
 }
